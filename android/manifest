@@ -1,0 +1,18 @@
+#
+# this is your module manifest and used by Titanium
+# during compilation, packaging, distribution, etc.
+#
+version: 1.0
+apiversion: 2
+architectures: armeabi armeabi-v7a x86
+description: kanka-bluetooth
+author: Pablo Lluch
+license: Specify your license
+copyright: Copyright (c) 2015 by Your Company
+
+# these should not be edited
+name: kanka-bluetooth
+moduleid: com.ewin.kanka.bluetooth
+guid: 5b2d94e7-aee8-487d-a52d-259fec403c7c
+platform: android
+minsdk: 4.1.0.v20150610125228
