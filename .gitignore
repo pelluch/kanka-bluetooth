@@ -1,3 +1,5 @@
 dist
 libs
 build
+/.apt_generated/
+/bin/

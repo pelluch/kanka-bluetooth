@@ -8,43 +8,169 @@
  */
 package com.ewin.kanka.bluetooth;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
-
 import org.appcelerator.titanium.TiApplication;
+import org.appcelerator.titanium.util.TiActivityResultHandler;
+import org.appcelerator.titanium.util.TiActivitySupport;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.kroll.common.TiConfig;
 
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
+
+import com.idevicesinc.device.iDevice;
+import com.idevicesinc.device.iDeviceManager;
+import com.idevicesinc.device.iDeviceManager.Listener;
+import com.idevicesinc.device.iDeviceManagerConfig;
+import com.idevicesinc.device.iGrill;
+import com.idevicesinc.device.iProbe;
+import com.idevicesinc.device.metadata.Kanka;
+import com.idevicesinc.sweetblue.BleManager;
 
 @Kroll.module(name="KankaBluetooth", id="com.ewin.kanka.bluetooth")
 public class KankaBluetoothModule extends KrollModule
+implements TiActivityResultHandler
 {
 
 	// Standard Debugging variables
-	private static final String LCAT = "KankaBluetoothModule";
+	public static final String LCAT = "KankaBluetoothModule";
 	private static final boolean DBG = TiConfig.LOGD;
-
+	private iDeviceManager deviceManager;
+    public static BleManager bleManager;
+    private int requestCode;
+    private HashMap<String, iDevice> devices = new HashMap<String, iDevice>();
+    
 	// You can define constants with @Kroll.constant, for example:
 	// @Kroll.constant public static final String EXTERNAL_NAME = value;
 
 	public KankaBluetoothModule()
 	{
 		super();
+		
 	}
-
+	
+	
 	@Kroll.onAppCreate
 	public static void onAppCreate(TiApplication app)
 	{
 		Log.d(LCAT, "inside onAppCreate");
 		// put module init code that needs to run when the application is created
-	}
 
+	}
+	
+	@Override
+	public void onDestroy(Activity activity) {
+		Log.d(LCAT, "On destroy");
+		// TODO Auto-generated method stub
+		super.onDestroy(activity);
+		Iterator it = devices.entrySet().iterator();
+	    while (it.hasNext()) {
+	    	Map.Entry<String, iDevice> pair = (Map.Entry<String, iDevice>)it.next();
+	    	pair.getValue().disconnect();
+	    }
+	}
+	
+	
+	@Kroll.method
+	public void connectDevice(String uniqueId, final KrollFunction tempCallback) 
+	{
+		iDevice device = devices.get(uniqueId);
+		if(device != null) 
+		{
+			final iGrill igrill = (iGrill) device;
+			
+	        igrill.setProbeListener(new iProbe.Listener()
+	        {
+	            @Override public void onProbeEvent(final iProbe probe, Event event)
+	            {
+	                // Whenever the temperature changes, refresh the temperature, thresholds, and pre-alarm delta elements in the GUI
+	                if(event == Event.TEMPERATURE_CHANGED)
+	                {
+	                    int temp = probe.getCurrentTemp();
+	                    HashMap map = new HashMap();
+	                    map.put("temperature", temp);
+	                    map.put("name", probe.getName());
+	                    tempCallback.call(getKrollObject(), map);
+	                }
+	            }
+			
+	        });	
+	        device.connect();
+		}
+	}
+	
+	@Kroll.method
+	public void startScan(final KrollFunction callback) 
+	{
+		TiApplication appContext = TiApplication.getInstance();
+		Activity activity = appContext.getCurrentActivity();
+		TiActivitySupport support = (TiActivitySupport) activity;
+		
+        // Create a device manager, and give it a listener to listen for discovered/undiscovered devices
+        iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
+
+        deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
+        deviceManager.setListener(new Listener()
+        {
+            @Override public void onDeviceDiscovered(iDevice device)
+            {
+                Log.d(LCAT, "Device Discovered: " + device.getDeviceName());
+                // updateDiscoveredDevicesList();
+                HashMap map = new HashMap();
+                map.put("deviceName", device.getDeviceName());
+                map.put("uniqueId", device.getUniqueId());
+                devices.put(device.getUniqueId(), device);
+                callback.call(getKrollObject(), map);
+            }
+
+            @Override public void onDeviceUndiscovered(iDevice device)
+            {
+                Log.d(LCAT, "Device Undiscovered: " + device.getDeviceName());
+                // updateDiscoveredDevicesList();
+            }
+        });
+        
+        // Create a BLE manager
+        bleManager = BleManager.get(appContext, deviceManagerConfig.newDefaultBleConfig());
+
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        
+        
+        if(bluetoothAdapter != null && !bluetoothAdapter.isEnabled())
+        {	
+        	Log.d(LCAT, "Turning on");
+        	Intent bluetoothIntent = new Intent(activity, BluetoothActivity.class);
+        	
+        	Log.d(LCAT, "Created intent");
+        	// activity.startActivity(bluetoothIntent);
+        	requestCode = support.getUniqueResultCode();
+        	bluetoothIntent.putExtra("CODE", requestCode);
+    		support.launchActivityForResult(bluetoothIntent, requestCode, this);
+    		Log.d(LCAT, "Launched activity for result");
+            
+        }
+        else
+        {
+        	Log.d(LCAT, "Scanning");
+            // Start scanning for devices
+            bleManager.startScan(deviceManager);
+        }
+	}
+	
+	
 	// Methods
 	@Kroll.method
 	public String example()
 	{
 		Log.d(LCAT, "example called");
-		return "hello world";
+		return "hello world again";
 	}
 
 	// Properties
@@ -54,12 +180,32 @@ public class KankaBluetoothModule extends KrollModule
 		Log.d(LCAT, "get example property");
 		return "hello world";
 	}
-
+	
+	
 
 	@Kroll.setProperty
 	public void setExampleProp(String value) {
 		Log.d(LCAT, "set example property: " + value);
 	}
 
+
+	@Override
+	public void onError(Activity activity, int requestCode, Exception e) {
+		// TODO Auto-generated method stub
+		Log.d(LCAT, "Got an error");
+	}
+
+	@Override
+	public void onResult(Activity activity, int requestCode, int resultCode, Intent data) {
+		// TODO Auto-generated method stub
+		Log.d(LCAT, "Am in onResult");
+		Log.d(LCAT, "Result code is " + requestCode);
+		Log.d(LCAT, "Resquest code is " + resultCode);
+		if(requestCode == this.requestCode && resultCode == Activity.RESULT_OK)
+        {
+            // Start scanning for devices
+            bleManager.startScan();
+        }
+	}
 }
 

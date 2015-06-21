@@ -1,12 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ti:module xmlns:ti="http://ti.appcelerator.org" xmlns:android="http://schemas.android.com/apk/res/android">
-	<!--
-		Similar to tiapp.xml, but contains module/platform specific
-		configuration in <iphone>, <android>, and <mobileweb> sections
-	-->
+<ti:module xmlns:ti="http://ti.appcelerator.org"
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- Similar to tiapp.xml, but contains module/platform specific configuration 
+		in <iphone>, <android>, and <mobileweb> sections -->
 	<iphone>
 	</iphone>
 	<android xmlns:android="http://schemas.android.com/apk/res/android">
+		<manifest>
+			<uses-permission android:name="android.permission.BLUETOOTH" />
+			<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+			<uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
+			<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+			<uses-feature android:name="android.hardware.bluetooth_le"
+				android:required="true" />
+
+			<application>
+				<activity android:name="com.ewin.kanka.bluetooth.BluetoothActivity" />
+			</application>
+
+		</manifest>
 	</android>
 	<mobileweb>
 	</mobileweb>
