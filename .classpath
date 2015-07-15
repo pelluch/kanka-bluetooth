@@ -5,14 +5,14 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/opt/android-sdk/platforms/android-22/android.jar"/>
 	<classpathentry kind="lib" path="/opt/android-sdk/add-ons/addon-google_apis-google-22/libs/maps.jar"/>
-	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.v20150610125228/android/titanium.jar"/>
-	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.v20150610125228/android/kroll-common.jar"/>
-	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.v20150610125228/android/kroll-apt.jar"/>
 	<classpathentry kind="src" path=".apt_generated">
 		<attributes>
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/run/media/pablo/storage/data/src/ewin/kanka/kanka-bluetooth/android/lib/idevices_sdk__1_0_0.jar"/>
+	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-apt.jar"/>
+	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-common.jar"/>
+	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/titanium.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
