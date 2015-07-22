@@ -26,12 +26,17 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 
 import com.idevicesinc.device.iDevice;
+import com.idevicesinc.device.iDeviceBle;
 import com.idevicesinc.device.iDeviceManager;
+import com.idevicesinc.device.iDevice.Listener.Event;
 import com.idevicesinc.device.iDeviceManager.Listener;
 import com.idevicesinc.device.iDeviceManagerConfig;
 import com.idevicesinc.device.iGrill;
+import com.idevicesinc.device.iGrillTempUnit;
 import com.idevicesinc.device.iProbe;
 import com.idevicesinc.device.metadata.Kanka;
+import com.idevicesinc.sweetblue.BleDevice.ConnectionFailListener.Status;
+import com.idevicesinc.sweetblue.BleDeviceState;
 import com.idevicesinc.sweetblue.BleManager;
 
 @Kroll.module(name="KankaBluetooth", id="com.ewin.kanka.bluetooth")
@@ -85,7 +90,7 @@ implements TiActivityResultHandler
 		if(device != null) 
 		{
 			final iGrill igrill = (iGrill) device;
-			
+			igrill.setTempUnit(iGrillTempUnit.C);
 	        igrill.setProbeListener(new iProbe.Listener()
 	        {
 	            @Override public void onProbeEvent(final iProbe probe, Event event)
@@ -94,14 +99,135 @@ implements TiActivityResultHandler
 	                if(event == Event.TEMPERATURE_CHANGED)
 	                {
 	                    int temp = probe.getCurrentTemp();
-	                    HashMap map = new HashMap();
+	                    HashMap<String, Object> map = new HashMap<String, Object>();
 	                    map.put("temperature", temp);
 	                    map.put("name", probe.getName());
 	                    tempCallback.call(getKrollObject(), map);
 	                }
+	                else if(event == Event.THRESHOLD_REACHED) 
+	                {
+	                	
+	                }
+	                else if(event == Event.ALARM_ACKNOWLEDGED) 
+	                {
+	                	
+	                }
+	                else if(event == Event.PRE_ALARM_STATE_CHANGED) 
+	                {
+	                	
+	                }
 	            }
 			
 	        });	
+	        
+	        igrill.setListener(new iGrill.Listener() {
+
+				@Override
+				public void onConnectionFailed(iDeviceBle arg0, Status arg1) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onConnectionFailedWithRetries(iDeviceBle arg0,
+						Status arg1) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onDeviceStateChange(iDeviceBle arg0, int arg1,
+						int arg2, int arg3) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void onDeviceStateChangeForView(iDeviceBle device,
+						BleDeviceState state) {
+					if(state == BleDeviceState.CONNECTING)
+	                {
+						Log.d(LCAT, "CONNECTING");
+	                }
+	                else if(state == BleDeviceState.DISCOVERING_SERVICES)
+	                {
+	                	Log.d(LCAT, "DISCOVERING_DEVICES");
+	                }
+	                else if(state == BleDeviceState.AUTHENTICATING)
+	                {
+	                	Log.d(LCAT, "AUTHENTICATING");
+	                }
+	                else if(state == BleDeviceState.INITIALIZING)
+	                {
+	                	Log.d(LCAT, "INITIALIZING");
+	                }
+	                // When the initialized state is reached, the app hass fully connected to the thermometer via BLE
+	                else if(state == BleDeviceState.INITIALIZED)
+	                {
+	                	Log.d(LCAT, "INITIALIZED");
+	                }
+	                else if(state == BleDeviceState.DISCONNECTED)
+	                {
+	                    Log.d(LCAT, "DISCONNECTED");
+	                    
+	                }
+	                else if(state == BleDeviceState.RECONNECTING_LONG_TERM)
+	                {
+	                    Log.d(LCAT, "ATTEMPTING_RECONNECT");
+	                }
+					
+				}
+
+				@Override
+				public void onDeviceEvent(iDevice device, Event event) {
+					if(event == Event.BATTERY_LEVEL_UPDATED)
+	                {
+	                    if(igrill.hasBatteryLevel())
+	                    {
+	                        // Do something
+	                    }
+	                }
+	                // After connecting to a device, it takes a few moments to read the firmware version from the device.  When the firmware version is
+	                // successfully read, the device event FIRMWARE_VERSION_AVAILABLE occurs.
+	                else if(event == Event.FIRMWARE_VERSION_AVAILABLE)
+	                {
+	                   
+	                    if(igrill.isFirmwareUpdateAvailable())
+	                    {
+	                        // Normally, this is where you can check if there are any firmware updates available,
+	                        // and if so, call device.updateFirmware().  However, for the purposes of this sample app,
+	                        // we simply added an "Update Firmware" button so you can force the firmware update.
+	                    }
+	                }
+	                else if(event == Event.FIRMWARE_UPDATE_STARTED)
+	                {
+	                 
+	                }
+	                else if(event == Event.FIRMWARE_UPDATE_PROGRESS)
+	                {
+	                   
+	                }
+	                else if(event == Event.FIRMWARE_UPDATE_COMPLETED)
+	                {
+	                    
+	                }
+	                else if(event == Event.FIRMWARE_UPDATE_FAILED)
+	                {
+	                   
+	                }
+					
+				}
+
+				@Override
+				public void onConnectedProbeCountChanged(iGrill arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				
+			});
+	        
+	        
 	        device.connect();
 		}
 	}
