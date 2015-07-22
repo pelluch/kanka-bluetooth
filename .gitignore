@@ -3,3 +3,4 @@ libs
 build
 /.apt_generated/
 /bin/
+.DS_Store
