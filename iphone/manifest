@@ -1,0 +1,18 @@
+#
+# this is your module manifest and used by Titanium
+# during compilation, packaging, distribution, etc.
+#
+version: 1.0
+apiversion: 2
+architectures: armv7 arm64 i386 x86_64
+description: kanka-bluetooth-ios
+author: Pablo Lluch
+license: Specify your license
+copyright: Copyright (c) 2015 by Your Company
+
+# these should not be edited
+name: kanka-bluetooth-ios
+moduleid: com.ewin.kanka.bluetooth
+guid: 4bd11bed-3447-4ce5-b7c9-20cf8d3fe325
+platform: iphone
+minsdk: 4.0.0.GA
