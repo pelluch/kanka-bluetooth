@@ -8,6 +8,7 @@
  */
 package com.ewin.kanka.bluetooth;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -29,6 +30,10 @@ import org.appcelerator.kroll.common.TiConfig;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 
 import com.idevicesinc.device.iDevice;
 import com.idevicesinc.device.iDeviceBle;
@@ -100,32 +105,32 @@ implements TiActivityResultHandler
 				pair.getValue().disconnect();
 			}			
 		}
-		
+
 		bleManager.stopScan();
 		bleManager.disconnectAll();
 		bleManager.undiscoverAll();			
 		bleManager.reset();
 	}
-	
+
 	@Override
 	public void onResume(Activity activity) {
 		// TODO Auto-generated method stub
 		super.onResume(activity);
-		
+
 		/*if(bleManager != null) {
 			bleManager.onResume();
 		}*/
 		Log.d(LCAT, "module onResume");
 	}
-	
-	
+
+
 	@Override
 	public void onStart(Activity activity) {
 		// TODO Auto-generated method stub
 		super.onStart(activity);
 		Log.d(LCAT, "module onStart");
 	}
-	
+
 	@Override
 	public void onPause(Activity activity) {
 		// TODO Auto-generated method stub
@@ -135,7 +140,7 @@ implements TiActivityResultHandler
 		}*/
 		Log.d(LCAT, "module onPause");
 	}
-	
+
 	@Override
 	public void onStop(Activity activity) {
 		// TODO Auto-generated method stub
@@ -178,14 +183,14 @@ implements TiActivityResultHandler
 		final KrollFunction preAlarmCallback = (KrollFunction)params.get("onPrealarmStateChange");
 		final KrollFunction connectCallback = (KrollFunction)params.get("onConnect");
 		final KrollFunction disconnectCallback = (KrollFunction)params.get("onDisconnect");
-		
+
 		final Integer lowThreshold = (Integer)params.get("lowThreshold");
 		final Integer highThreshold = (Integer)params.get("highThreshold");
 		final Integer preAlarmDelta = (Integer)params.get("preAlarmDelta");
-		
-		
-		
-		
+
+
+
+
 		if(test == true)
 		{
 			final HashMap<String, Object> testDevice = testDevices.get(uniqueId);
@@ -199,7 +204,7 @@ implements TiActivityResultHandler
 				testDevice.put("timer", timer);
 				Log.d(LCAT, "Scheduling");
 				timer.scheduleAtFixedRate(new TimerTask() {
-					
+
 					@Override
 					public void run() {
 						Log.d(LCAT, "Running Scheduling");
@@ -216,7 +221,7 @@ implements TiActivityResultHandler
 						testDevice.put("temperature", temp);
 					}
 				}, 0, 5*1000);
-			
+
 			}
 		}
 		else 
@@ -224,71 +229,57 @@ implements TiActivityResultHandler
 			iDevice device = devices.get(uniqueId);
 			if(device != null) 
 			{
-				
+
 				final iGrill igrill = (iGrill) device;
-				
-				
-				
-				igrill.setTempUnit(iGrillTempUnit.C);
-				
+
+				final int low, high;
+				final short delta;
+
+				igrill.getProbe(0).clearThresholds();
+
+				// igrill.setTempUnit(iGrillTempUnit.C);
+
 				if(lowThreshold != null) {
 					Log.d(LCAT, "Setting low to " + lowThreshold.intValue());
-					igrill.getProbe(0).setLowThreshold(lowThreshold.intValue());
-				}
-				if(highThreshold != null) {
-					Log.d(LCAT, "Setting hight to " + highThreshold.intValue());
-					igrill.getProbe(0).setHighThreshold(highThreshold.intValue());
-				}
-				
-				if(preAlarmDelta != null) {
-					Log.d(LCAT, "Setting preAlarmDelta to " + preAlarmDelta.intValue());
-					igrill.getProbe(0).setPreAlarmDelta(preAlarmDelta.shortValue());
+					low = lowThreshold.intValue();					
 				} else {
-					igrill.getProbe(0).setPreAlarmDelta((short)10);
+					low = 0;
 				}
-				
+
+
+				if(highThreshold != null) {
+					Log.d(LCAT, "Setting high to " + highThreshold.intValue());
+					high = highThreshold.intValue();					
+				} else {
+					high = 100;
+				}
+
+				if(preAlarmDelta != null) {
+					Log.d(LCAT, "Setting preAlarmDelta to " + preAlarmDelta.shortValue());
+					delta = preAlarmDelta.shortValue();
+				} else {
+					delta = 0;
+				}
+
+				// igrill.getProbe(0).setThresholds(low, high);
+				// igrill.getProbe(0).setPreAlarmDelta(delta);
+
 				igrill.setProbeListener(new iProbe.Listener()
 				{
 					@Override public void onProbeEvent(final iProbe probe, Event event)
 					{
+
+						int currentTemp = igrill.getProbe(0).getCurrentTemp();
+
 						// Whenever the temperature changes, refresh the temperature, thresholds, and pre-alarm delta elements in the GUI
 						if(event == Event.TEMPERATURE_CHANGED)
 						{
-							
-							
-							if(lowThreshold != null) 
-							{
-								igrill.getProbe(0).setLowThreshold(lowThreshold.intValue());
-							}
-							if(highThreshold != null)
-							{
-								igrill.getProbe(0).setHighThreshold(highThreshold.intValue());
-							}
-							if(preAlarmDelta != null)
-							{
-								igrill.getProbe(0).setPreAlarmDelta(preAlarmDelta.shortValue());
-							}
-							probe.getOwner().setTempUnit(iGrillTempUnit.C);
-							/*if(lowThreshold != null) 
-							{
-								Log.d(LCAT, "Setting low to " + lowThreshold.intValue());
-								igrill.getProbe(0).setLowThreshold(lowThreshold.intValue());
-							}
-							if(highThreshold != null)
-							{
-								Log.d(LCAT, "Setting hight to " + highThreshold.intValue());
-								igrill.getProbe(0).setHighThreshold(highThreshold.intValue());
-							}
-							if(preAlarmDelta != null)
-							{
-								Log.d(LCAT, "Setting preAlarmDelta to " + preAlarmDelta.intValue());
-								igrill.getProbe(0).setPreAlarmDelta(preAlarmDelta.shortValue());
-							}
-							*/
-							int temp = probe.getCurrentTemp();
+
+
+
 							HashMap<String, Object> map = new HashMap<String, Object>();
-							map.put("temperature", temp);
-							map.put("name", probe.getName());
+							map.put("temperature", currentTemp);
+							map.put("event_type", "TEMPERATURE_CHANGED");
 							if(tempCallback != null) {
 								tempCallback.call(getKrollObject(), map);
 							}
@@ -297,6 +288,8 @@ implements TiActivityResultHandler
 						{
 							if(thresholdCallback != null) {
 								HashMap<String, Object> map = new HashMap<String, Object>();
+								map.put("temperature", currentTemp);
+								map.put("event_type", "THRESHOLD_REACHED");
 								thresholdCallback.call(getKrollObject(), map);
 							}
 						}
@@ -304,13 +297,32 @@ implements TiActivityResultHandler
 						{
 							if(alarmCallback != null) {
 								HashMap<String, Object> map = new HashMap<String, Object>();
+								map.put("event_type", "ALARM_ACKNOWLEDGED");
+								map.put("temperature", currentTemp);
 								alarmCallback.call(getKrollObject(), map);
 							}
 						}
 						else if(event == Event.PRE_ALARM_STATE_CHANGED) 
 						{
 							if(preAlarmCallback != null) {
+
+								PreAlarmState state = igrill.getProbe(0).getPreAlarmState();
 								HashMap<String, Object> map = new HashMap<String, Object>();
+								if(state == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT)
+								{
+									map.put("state", "ACKNOWLEDGED_OR_REDUNDANT");
+								}
+								else if(state == PreAlarmState.ACTIVE)
+								{
+									map.put("state", "ACTIVE");
+								}
+								else if(state == PreAlarmState.NOT_ACTIVE)
+								{
+									map.put("state", "NOT_ACTIVE");
+								}
+								map.put("event_type", "PRE_ALARM_STATE_CHANGED");
+
+								map.put("temperature", currentTemp);
 								preAlarmCallback.call(getKrollObject(), map);
 							}
 						}
@@ -364,12 +376,31 @@ implements TiActivityResultHandler
 						else if(state == BleDeviceState.INITIALIZED)
 						{
 							Log.d(LCAT, "INITIALIZED");
+							iDevice connected = devices.get(device.getUniqueId());
+							if(connected != null)
+							{
+								iGrill grill = (iGrill)connected;
+								grill.setTempUnit(iGrillTempUnit.C);
+								grill.getProbe(0).setThresholds(low, high);
+								grill.getProbe(0).setPreAlarmDelta(delta);
+
+							}
 							if(connectCallback != null) {
 								HashMap<String, Object> map = new HashMap<String, Object>();
 								connectCallback.call(getKrollObject(), map);
 							}
-							
-							
+
+							int currentTemp = igrill.getProbe(0).getCurrentTemp();
+							if(currentTemp > -1000) {
+								HashMap<String, Object> map = new HashMap<String, Object>();
+								map.put("temperature", currentTemp);
+								map.put("event_type", "TEMPERATURE_CHANGED");
+								if(tempCallback != null) {
+									tempCallback.call(getKrollObject(), map);
+								}
+							}
+
+
 						}
 						else if(state == BleDeviceState.DISCONNECTED)
 						{
@@ -444,9 +475,8 @@ implements TiActivityResultHandler
 
 
 	}
-	
-	
-	
+
+
 	private HashMap<String, Object> getDeviceMap(iDevice device, boolean discovered) 
 	{
 		HashMap<String, Object> map = new HashMap<String, Object>();
@@ -467,13 +497,13 @@ implements TiActivityResultHandler
 		testDevices.put(uuid, map);
 		return map;
 	}
-	
+
 	@Kroll.method
 	public void setDeviceThreshold(String uniqueId, int temp)
 	{
-		
+
 	}
-	
+
 	@Kroll.method
 	public void startScan(KrollDict params) 
 	{
@@ -485,7 +515,7 @@ implements TiActivityResultHandler
 		Activity activity = appContext.getCurrentActivity();
 		TiActivitySupport support = (TiActivitySupport) activity;
 
-		
+
 
 		// Create a device manager, and give it a listener to listen for discovered/undiscovered devices
 		iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
@@ -497,7 +527,7 @@ implements TiActivityResultHandler
 			{
 				Log.d(LCAT, "Device Discovered: " + device.getDeviceName());
 				// updateDiscoveredDevicesList();
-				
+
 				devices.put(device.getUniqueId(), device);
 				onDiscover.call(getKrollObject(), getDeviceMap(device, true));
 			}
@@ -533,15 +563,15 @@ implements TiActivityResultHandler
 		{
 			Log.d(LCAT, "Scanning");
 			// Start scanning for devices
-			
+
 			bleManager.startScan(deviceManager);
-		
+
 			if(test == true) 
 			{
 				onDiscover.call(getKrollObject(), generateTestDevice("15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"));
 				onDiscover.call(getKrollObject(), generateTestDevice("b5defc17-ea81-4f0c-a031-11f58b850393"));
 				onDiscover.call(getKrollObject(), generateTestDevice("0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"));
-				
+
 				return;
 			}
 
@@ -576,7 +606,7 @@ implements TiActivityResultHandler
 		{
 			// Start scanning for devices
 			bleManager.startScan();
-		
+
 		}
 	}
 }
