@@ -261,9 +261,10 @@ implements TiActivityResultHandler
 					delta = 0;
 				}
 
-				// igrill.getProbe(0).setThresholds(low, high);
-				// igrill.getProbe(0).setPreAlarmDelta(delta);
-
+				igrill.setTempUnit(iGrillTempUnit.C);
+				igrill.getProbe(0).setThresholds(low, high);
+				igrill.getProbe(0).setPreAlarmDelta(delta);
+				
 				igrill.setProbeListener(new iProbe.Listener()
 				{
 					@Override public void onProbeEvent(final iProbe probe, Event event)
