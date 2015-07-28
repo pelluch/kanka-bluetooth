@@ -6,11 +6,21 @@
  */
 
 #import "TiModule.h"
+#import <iGrillBLEManager.h>
+#import <KankaDevice.h>
+
+@protocol DeviceManagerProtocol <NSObject>
+
+- (void)forgetDevice:(iGrillBLEDevice *)device;
+- (void)pairDevice:(iGrillBLEDevice *)device;
+
+@end
 
 @interface ComEwinKankaBluetoothModule : TiModule
 {
     NSDictionary *_devices;
-    NSDictionary *_testDevices;
+    NSMutableDictionary *_testDevices;
+    BOOL _test;
 }
 
 @end

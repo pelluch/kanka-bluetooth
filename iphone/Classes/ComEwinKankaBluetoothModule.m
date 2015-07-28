@@ -10,6 +10,14 @@
 #import "TiHost.h"
 #import "TiUtils.h"
 
+
+@interface ComEwinKankaBluetoothModule() <iGrillBLEManagerDelegate, DeviceManagerProtocol>
+{
+    iGrillBLEManager *_iGrillBLEManager;
+    NSTimer *_cullTimer;
+}
+@end
+
 @implementation ComEwinKankaBluetoothModule
 
 #pragma mark Internal
@@ -35,6 +43,7 @@
 	[super startup];
 
 	NSLog(@"[INFO] %@ loaded",self);
+    _testDevices = [[NSMutableDictionary alloc]initWithCapacity:10];
 }
 
 -(void)shutdown:(id)sender
@@ -87,22 +96,184 @@
 
 #pragma Public APIs
 
+
 -(void)startScan:(id)args
 {
-    NSLog(@"Start Scan");
+    ENSURE_ARG_COUNT(args, 1);
+    NSDictionary * params = args[0];
+    
+    KrollCallback * onDiscover = params[@"onDiscover"];
+    KrollCallback * onUndiscover = params[@"onUndiscover"];
+    NSLog(@"Starting scan");
+    
+  
+    [ onDiscover call:[ self addDevice:@"15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"] thisObject:self];
+    [ onDiscover call:[ self addDevice:@"b5defc17-ea81-4f0c-a031-11f58b850393"] thisObject:self];
+    [ onDiscover call:[ self addDevice:@"0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"] thisObject:self];
+   
+    
 }
+
+-(NSArray *)addDevice:(NSString *)uuid
+{
+    NSLog(uuid);
+    NSNumber * discovered = @(true);
+    NSMutableDictionary *device = [[NSMutableDictionary alloc] initWithObjectsAndKeys:@"Test Device",
+                                   @"deviceName", uuid, @"uniqueId", discovered, @"discovered", nil];
+    NSLog(@"Created device");
+    [_testDevices setObject:device forKey: uuid];
+    NSLog(@"Set test devices hash");
+    NSArray * args = [ NSArray arrayWithObject:device ];
+    return args;
+}
+
 
 -(void)disconnectDevice:(id)args
 {
+    ENSURE_ARG_COUNT(args, 1);
     NSLog(@"Disconnect device");
+    NSString * uniqueId = args[0];
+    NSLog(uniqueId);
+    
+    NSMutableDictionary * device = [ _testDevices objectForKey : uniqueId ];
+    if(device != nil)
+    {
+        KrollCallback * onDisconnect = [ device objectForKey:@"onDisconnect" ];
+        NSTimer * timer = [ device objectForKey:@"timer" ];
+        if(timer != nil)
+        {
+            [ timer invalidate ];
+        }
+        [ onDisconnect call:[NSArray array] thisObject:self];
+    }
+}
+
+-(void)onTick:(NSTimer *)timer
+{
+    NSLog(@"TICK");
+    NSLog(@"Timer callback for %@", [ timer userInfo ]);
+    NSMutableDictionary * device = [ timer userInfo ];
+    NSNumber * temp = [ device objectForKey:@"temperature" ];
+    NSMutableDictionary * map = [ [NSMutableDictionary alloc]
+                                 initWithObjectsAndKeys:temp, @"temperature", nil ];
+    KrollCallback * onTemperatureChange = [ device objectForKey:@"onTemperatureChange" ];
+    [ onTemperatureChange call:[ NSArray arrayWithObject:map ] thisObject:self ];
+    
+    int newTemp = [ temp intValue ] + arc4random_uniform(20) - 10;
+    if(newTemp > 200) {
+        newTemp = 200;
+    } else if(newTemp < 0) {
+        newTemp = 0;
+    }
+    temp = [ NSNumber numberWithInt:newTemp ];
+    [ device setObject:temp forKey:@"temperature" ];
 }
 
 -(void)connectDevice:(id)args
 {
+    ENSURE_ARG_COUNT(args, 2);
     NSLog(@"Connect device");
+    NSString * uniqueId = args[0];
+    NSLog(uniqueId);
+    NSDictionary * params = args[1];
+    
+    KrollCallback * onTemperatureChange = params[@"onTemperatureChange"];
+    KrollCallback * onThreshold = params[@"onThreshold"];
+    KrollCallback * onAlarmAcknowledge = params[@"onAlarmAcknowledge"];
+    KrollCallback * onPrealarmStateChange = params[@"onPrealarmStateChange"];
+    KrollCallback * onConnect = params[@"onConnect"];
+    KrollCallback * onDisconnect = params[@"onDisconnect"];
+    
+    NSMutableDictionary * device = [ _testDevices objectForKey : uniqueId ];
+    if(device != nil)
+    {
+        
+        NSNumber * temp = @(80);
+        [ device setObject:onDisconnect forKey:@"onDisconnect" ];
+        [ device setObject:onTemperatureChange forKey:@"onTemperatureChange" ];
+        [ device setObject:temp forKey:@"temperature" ];
+        [ onConnect call:[ NSArray array ] thisObject:self];
+        
+        NSLog(@"Initializing timer");
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSTimer * timer = [ NSTimer
+                     scheduledTimerWithTimeInterval:5
+                     target:self
+                     selector: @selector(onTick:)
+                     userInfo: device
+                     repeats: YES ];
+            [ timer fire ];
+            [ device setObject:timer forKey:@"timer" ];
+        });
+    }
 }
 
 
+-(id)test
+{
+    return _test;
+}
 
+-(void)setTest:(id)value
+{
+    _test = value;
+}
+
+#pragma mark - Device Manager Protocol
+-(void)forgetDevice:(iGrillBLEDevice *)device
+{
+    [_iGrillBLEManager disconnectiGrill:device];
+}
+
+-(void)pairDevice:(iGrillBLEDevice *)device
+{
+    [_iGrillBLEManager cullDiscoveredDevicesOlderThan:5];
+}
+
+#pragma mark - iGrillBLEManagerDelegate
+
+- (void) igrillBLEManagerReadyToScan:(iGrillBLEManager*)manager
+{
+    if( [manager isReadyToScan] )
+    {
+        [manager startScan:YES];
+    }
+}
+
+- (void) igrillBLEManagerBluetoothUnavailable:(iGrillBLEManager*)manager
+{
+    
+}
+
+- (void) igrillBLEManager:(iGrillBLEManager*)manager deviceConnected:(iGrillBLEDevice*)device
+{
+    //We assume that when a device is connected we will display the details.
+    // [self displayDeviceDetail:device];
+    
+    // [self.tableView reloadData];
+}
+
+- (void) igrillBLEManager:(iGrillBLEManager*)manager deviceDisconnected:(iGrillBLEDevice*)device
+{
+    // [[NSNotificationCenter defaultCenter] postNotificationName:kNotificationDeviceDisconnected object:device];
+    
+    // [self.tableView reloadData];
+}
+
+- (void) igrillBLEManager:(iGrillBLEManager*)manager deviceConnectFailed:(iGrillBLEDevice*)device
+{
+    // [self.tableView reloadData];
+}
+
+-(void) igrillBLEManager:(iGrillBLEManager*)manager deviceDiscovered:(iGrillBLEDevice*)device
+{
+    // [self.tableView reloadData];
+}
+
+-(void) igrillBLEManager:(iGrillBLEManager*)manager undiscoveredDevice:(iGrillBLEDevice*)device
+{
+    // [self.tableView reloadData];
+}
 
 @end
