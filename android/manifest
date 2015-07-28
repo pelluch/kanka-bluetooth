@@ -15,4 +15,4 @@ name: kanka-bluetooth
 moduleid: com.ewin.kanka.bluetooth
 guid: 5b2d94e7-aee8-487d-a52d-259fec403c7c
 platform: android
-minsdk: 4.1.0.GA
+minsdk: 4.0.0.GA
