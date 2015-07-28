@@ -104,12 +104,11 @@ implements TiActivityResultHandler
 				Map.Entry<String, iDevice> pair = (Map.Entry<String, iDevice>)it.next();
 				pair.getValue().disconnect();
 			}			
+			bleManager.stopScan();
+			bleManager.disconnectAll();
+			bleManager.undiscoverAll();			
+			bleManager.reset();
 		}
-
-		bleManager.stopScan();
-		bleManager.disconnectAll();
-		bleManager.undiscoverAll();			
-		bleManager.reset();
 	}
 
 	@Override
@@ -165,12 +164,16 @@ implements TiActivityResultHandler
 			}
 
 		}
-
-		iDevice device = devices.get(uniqueId);
-		if(device != null) 
+		else
 		{
-			device.disconnect();
+			iDevice device = devices.get(uniqueId);
+			if(device != null) 
+			{
+				device.disconnect();
+			}
 		}
+
+		
 	}
 
 	@Kroll.method
@@ -264,7 +267,7 @@ implements TiActivityResultHandler
 				igrill.setTempUnit(iGrillTempUnit.C);
 				igrill.getProbe(0).setThresholds(low, high);
 				igrill.getProbe(0).setPreAlarmDelta(delta);
-				
+
 				igrill.setProbeListener(new iProbe.Listener()
 				{
 					@Override public void onProbeEvent(final iProbe probe, Event event)
@@ -517,66 +520,65 @@ implements TiActivityResultHandler
 		TiActivitySupport support = (TiActivitySupport) activity;
 
 
-
-		// Create a device manager, and give it a listener to listen for discovered/undiscovered devices
-		iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
-
-		deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
-		deviceManager.setListener(new Listener()
+		if(test == true)
 		{
-			@Override public void onDeviceDiscovered(iDevice device)
-			{
-				Log.d(LCAT, "Device Discovered: " + device.getDeviceName());
-				// updateDiscoveredDevicesList();
-
-				devices.put(device.getUniqueId(), device);
-				onDiscover.call(getKrollObject(), getDeviceMap(device, true));
-			}
-
-			@Override public void onDeviceUndiscovered(iDevice device)
-			{
-				Log.d(LCAT, "Device Undiscovered: " + device.getDeviceName());
-				onUndiscover.call(getKrollObject(), getDeviceMap(device, false));
-				// updateDiscoveredDevicesList();
-			}
-		});
-
-		// Create a BLE manager
-		bleManager = BleManager.get(appContext, deviceManagerConfig.newDefaultBleConfig());
-
-		BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-
-		if(bluetoothAdapter != null && !bluetoothAdapter.isEnabled())
-		{	
-			Log.d(LCAT, "Turning on");
-			Intent bluetoothIntent = new Intent(activity, BluetoothActivity.class);
-
-			Log.d(LCAT, "Created intent");
-			// activity.startActivity(bluetoothIntent);
-			requestCode = support.getUniqueResultCode();
-			bluetoothIntent.putExtra("CODE", requestCode);
-			support.launchActivityForResult(bluetoothIntent, requestCode, this);
-			Log.d(LCAT, "Launched activity for result");
-
+			onDiscover.call(getKrollObject(), generateTestDevice("15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"));
+			onDiscover.call(getKrollObject(), generateTestDevice("b5defc17-ea81-4f0c-a031-11f58b850393"));
+			onDiscover.call(getKrollObject(), generateTestDevice("0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"));
 		}
 		else
 		{
-			Log.d(LCAT, "Scanning");
-			// Start scanning for devices
+			// Create a device manager, and give it a listener to listen for discovered/undiscovered devices
+			iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
 
-			bleManager.startScan(deviceManager);
-
-			if(test == true) 
+			deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
+			deviceManager.setListener(new Listener()
 			{
-				onDiscover.call(getKrollObject(), generateTestDevice("15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"));
-				onDiscover.call(getKrollObject(), generateTestDevice("b5defc17-ea81-4f0c-a031-11f58b850393"));
-				onDiscover.call(getKrollObject(), generateTestDevice("0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"));
+				@Override public void onDeviceDiscovered(iDevice device)
+				{
+					Log.d(LCAT, "Device Discovered: " + device.getDeviceName());
+					// updateDiscoveredDevicesList();
 
-				return;
+					devices.put(device.getUniqueId(), device);
+					onDiscover.call(getKrollObject(), getDeviceMap(device, true));
+				}
+
+				@Override public void onDeviceUndiscovered(iDevice device)
+				{
+					Log.d(LCAT, "Device Undiscovered: " + device.getDeviceName());
+					onUndiscover.call(getKrollObject(), getDeviceMap(device, false));
+					// updateDiscoveredDevicesList();
+				}
+			});
+
+			// Create a BLE manager
+			bleManager = BleManager.get(appContext, deviceManagerConfig.newDefaultBleConfig());
+
+			BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+
+			if(bluetoothAdapter != null && !bluetoothAdapter.isEnabled())
+			{	
+				Log.d(LCAT, "Turning on");
+				Intent bluetoothIntent = new Intent(activity, BluetoothActivity.class);
+
+				Log.d(LCAT, "Created intent");
+				// activity.startActivity(bluetoothIntent);
+				requestCode = support.getUniqueResultCode();
+				bluetoothIntent.putExtra("CODE", requestCode);
+				support.launchActivityForResult(bluetoothIntent, requestCode, this);
+				Log.d(LCAT, "Launched activity for result");
+
 			}
+			else
+			{
+				Log.d(LCAT, "Scanning");
+				// Start scanning for devices
 
+				bleManager.startScan(deviceManager);
+			}
 		}
+
 	}
 
 	@Kroll.getProperty
