@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -27,13 +28,19 @@ import org.appcelerator.titanium.util.TiActivitySupport;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.kroll.common.TiConfig;
 
+import android.R;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.support.v4.app.NotificationCompat;
 
 import com.idevicesinc.device.iDevice;
 import com.idevicesinc.device.iDeviceBle;
@@ -65,10 +72,14 @@ implements TiActivityResultHandler
 	public static BleManager bleManager;
 	private int requestCode;
 	private HashMap<String, iDevice> devices = new HashMap<String, iDevice>();
+	private HashMap<String, Boolean> thresholded = new HashMap<String, Boolean>();
 	private HashMap<String, HashMap<String, Object>> testDevices = 
 			new HashMap<String, HashMap<String, Object>>();
 	private boolean test = false;
-
+	private final static AtomicInteger notificationCounter = new AtomicInteger(0);
+	private static Ringtone ringtone;
+	
+	
 	// You can define constants with @Kroll.constant, for example:
 	// @Kroll.constant public static final String EXTERNAL_NAME = value;
 
@@ -77,7 +88,11 @@ implements TiActivityResultHandler
 		super();
 	}
 
-
+	public static Ringtone getRingtone()
+	{
+		return ringtone;
+	}
+	
 	@Kroll.onAppCreate
 	public static void onAppCreate(TiApplication app)
 	{
@@ -92,7 +107,7 @@ implements TiActivityResultHandler
 		Log.d(LCAT, "Module on destroy");
 		// TODO Auto-generated method stub
 		super.onDestroy(activity);
-
+		
 		if(test == true) 
 		{
 
@@ -175,9 +190,42 @@ implements TiActivityResultHandler
 
 		
 	}
-
+	
+	private void sendThresholdNotification() 
+	{
+		
+		Context context = TiApplication.getInstance();
+		Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+		Ringtone ringtoneManager = RingtoneManager.getRingtone(context, alarmTone);
+		if(ringtone != null)
+		{
+			ringtone.stop();
+		}
+		ringtone = ringtoneManager;
+		ringtone.play();
+		
+		Intent notificationIntent = new Intent(context, AlarmService.class);
+		PendingIntent pendingIntent = PendingIntent.getService(context, 0, notificationIntent, 0);
+		
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+    	.setWhen(System.currentTimeMillis())
+    	.setSmallIcon(R.drawable.ic_dialog_alert)
+    	.setContentTitle("Cocción finalizada")
+    	.setContentText("Ha finalizado la cocción. Haga click para descartar la alarma.")
+    	.setContentIntent(pendingIntent);
+		
+    	Notification notification = builder.build();
+    	notification.flags = Notification.FLAG_AUTO_CANCEL | Notification.FLAG_SHOW_LIGHTS;
+     	
+    	
+    	NotificationManager manager = (NotificationManager)context.getSystemService(Activity.NOTIFICATION_SERVICE);
+    	manager.notify(notificationCounter.incrementAndGet(), notification);
+    	
+    	
+	}
+	
 	@Kroll.method
-	public void connectDevice(String uniqueId, KrollDict params) 
+	public void connectDevice(final String uniqueId, KrollDict params) 
 	{
 
 		final KrollFunction tempCallback = (KrollFunction)params.get("onTemperatureChange");
@@ -295,6 +343,23 @@ implements TiActivityResultHandler
 								map.put("temperature", currentTemp);
 								map.put("event_type", "THRESHOLD_REACHED");
 								
+								Boolean deviceThresholded = thresholded.get(uniqueId);
+								if(deviceThresholded != null)
+								{
+									if(deviceThresholded) 
+									{
+										return;
+									}
+									else
+									{
+										thresholded.put(uniqueId, true);
+									}
+								}
+								else 
+								{
+									thresholded.put(uniqueId, true);
+								}
+								sendThresholdNotification();
 								thresholdCallback.call(getKrollObject(), map);
 							}
 						}

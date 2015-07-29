@@ -14,5 +14,6 @@
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-apt.jar"/>
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-common.jar"/>
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/titanium.jar"/>
+	<classpathentry kind="lib" path="/opt/android-sdk/extras/android/support/v7/appcompat/libs/android-support-v4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

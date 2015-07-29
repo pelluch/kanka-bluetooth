@@ -17,6 +17,7 @@
 
 			<application>
 				<activity android:name="com.ewin.kanka.bluetooth.BluetoothActivity" />
+				<service android:name="com.ewin.kanka.bluetooth.AlarmService" />
 			</application>
 
 		</manifest>
