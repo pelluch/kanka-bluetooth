@@ -294,6 +294,7 @@ implements TiActivityResultHandler
 								HashMap<String, Object> map = new HashMap<String, Object>();
 								map.put("temperature", currentTemp);
 								map.put("event_type", "THRESHOLD_REACHED");
+								
 								thresholdCallback.call(getKrollObject(), map);
 							}
 						}
