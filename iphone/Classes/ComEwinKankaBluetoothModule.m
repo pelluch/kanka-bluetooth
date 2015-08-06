@@ -108,8 +108,6 @@
     
   
     [ onDiscover call:[ self addDevice:@"15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"] thisObject:self];
-    [ onDiscover call:[ self addDevice:@"b5defc17-ea81-4f0c-a031-11f58b850393"] thisObject:self];
-    [ onDiscover call:[ self addDevice:@"0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"] thisObject:self];
    
     
 }
