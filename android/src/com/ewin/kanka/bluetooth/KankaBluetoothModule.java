@@ -49,6 +49,7 @@ import com.idevicesinc.device.iDevice.Listener.Event;
 import com.idevicesinc.device.iDeviceManager.Listener;
 import com.idevicesinc.device.iDeviceManagerConfig;
 import com.idevicesinc.device.iGrill;
+import com.idevicesinc.device.iGrillMetadata;
 import com.idevicesinc.device.iGrillTempUnit;
 import com.idevicesinc.device.iProbe;
 import com.idevicesinc.device.iProbe.PreAlarmState;
@@ -120,9 +121,9 @@ implements TiActivityResultHandler
 				pair.getValue().disconnect();
 			}			
 			bleManager.stopScan();
-			bleManager.disconnectAll();
+			// bleManager.disconnectAll();
 			bleManager.undiscoverAll();			
-			bleManager.reset();
+			// bleManager.reset();
 		}
 	}
 
@@ -249,7 +250,7 @@ implements TiActivityResultHandler
 			{
 				testDevice.put("onDisconnect", disconnectCallback);
 				testDevice.put("onTemperatureChange", tempCallback);
-				testDevice.put("temperature", 80);
+				testDevice.put("temperature", highThreshold - 20);
 				connectCallback.call(getKrollObject(), new HashMap<String, Object>());
 				final Timer timer = new Timer();
 				testDevice.put("timer", timer);
@@ -568,11 +569,7 @@ implements TiActivityResultHandler
 		return map;
 	}
 
-	@Kroll.method
-	public void setDeviceThreshold(String uniqueId, int temp)
-	{
 
-	}
 
 	@Kroll.method
 	public void startScan(KrollDict params) 
@@ -589,8 +586,6 @@ implements TiActivityResultHandler
 		if(test == true)
 		{
 			onDiscover.call(getKrollObject(), generateTestDevice("15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"));
-			onDiscover.call(getKrollObject(), generateTestDevice("b5defc17-ea81-4f0c-a031-11f58b850393"));
-			onDiscover.call(getKrollObject(), generateTestDevice("0f02f6a8-d97e-45e6-a8f1-d19bf5c7fbe1"));
 		}
 		else
 		{
@@ -598,11 +593,16 @@ implements TiActivityResultHandler
 			iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
 
 			deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
+			
 			deviceManager.setListener(new Listener()
 			{
 				@Override public void onDeviceDiscovered(iDevice device)
 				{
 					Log.d(LCAT, "Device Discovered: " + device.getDeviceName());
+					iGrill igrill = (iGrill)device;
+					Log.d(LCAT, "Current low threshold is " + igrill.getProbe(0).getLowThreshold());
+					Log.d(LCAT, "Current high threshold is " + igrill.getProbe(0).getHighThreshold());
+					Log.d(LCAT, "Current delta is " + igrill.getProbe(0).getPreAlarmDelta());
 					// updateDiscoveredDevicesList();
 
 					devices.put(device.getUniqueId(), device);
@@ -633,15 +633,24 @@ implements TiActivityResultHandler
 				requestCode = support.getUniqueResultCode();
 				bluetoothIntent.putExtra("CODE", requestCode);
 				support.launchActivityForResult(bluetoothIntent, requestCode, this);
-				Log.d(LCAT, "Launched activity for result");
+				Log.d(LCAT, "Launched activity for result with code " + requestCode);
 
 			}
 			else
 			{
 				Log.d(LCAT, "Scanning");
 				// Start scanning for devices
-
+				
 				bleManager.startScan(deviceManager);
+				BleDeviceIterator it = bleManager.getDevices();
+				while(it.hasNext()) {
+					BleDevice device = it.next();
+					String str = device.getMacAddress();
+					Log.d(LCAT,  "BleManager Already has device " + str);
+					
+				}
+				
+				
 			}
 		}
 
