@@ -18,9 +18,11 @@
 
 @interface ComEwinKankaBluetoothModule : TiModule
 {
-    NSDictionary *_devices;
-    NSMutableDictionary *_testDevices;
+    NSMutableDictionary * _devices;
     BOOL _test;
+    KrollCallback * _onDiscover;
+    KrollCallback * _onUndiscover;
+    ComEwinKankaBluetoothModule * _this;
 }
 
 @end

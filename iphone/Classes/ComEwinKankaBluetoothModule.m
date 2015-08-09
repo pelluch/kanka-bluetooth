@@ -43,8 +43,12 @@
 	[super startup];
 
 	NSLog(@"[INFO] %@ loaded",self);
-    _testDevices = [[NSMutableDictionary alloc]initWithCapacity:10];
+    NSLog(@"MODULE HAS LOADED!!");
+    _devices = [[NSMutableDictionary alloc]initWithCapacity:10];
+    NSLog(@"Startup done");
 }
+
+
 
 -(void)shutdown:(id)sender
 {
@@ -99,30 +103,25 @@
 
 -(void)startScan:(id)args
 {
-    ENSURE_ARG_COUNT(args, 1);
-    NSDictionary * params = args[0];
     
-    KrollCallback * onDiscover = params[@"onDiscover"];
-    KrollCallback * onUndiscover = params[@"onUndiscover"];
     NSLog(@"Starting scan");
+    ENSURE_ARG_COUNT(args, 1);
+    NSDictionary * params = [ [ args objectAtIndex:0 ] retain ];
     
-  
-    [ onDiscover call:[ self addDevice:@"15f9ae61-7c0e-4ec8-bb4a-f393c5bd119a"] thisObject:self];
-   
+    _onDiscover = params[@"onDiscover"];
+    _onUndiscover = params[@"onUndiscover"];
     
-}
-
--(NSArray *)addDevice:(NSString *)uuid
-{
-    NSLog(uuid);
-    NSNumber * discovered = @(true);
-    NSMutableDictionary *device = [[NSMutableDictionary alloc] initWithObjectsAndKeys:@"Test Device",
-                                   @"deviceName", uuid, @"uniqueId", discovered, @"discovered", nil];
-    NSLog(@"Created device");
-    [_testDevices setObject:device forKey: uuid];
-    NSLog(@"Set test devices hash");
-    NSArray * args = [ NSArray arrayWithObject:device ];
-    return args;
+    _iGrillBLEManager = [[iGrillBLEManager alloc] initWithDelegate:self andRestorationId:nil];
+    
+    if (![_iGrillBLEManager registeriGrillDeviceClass:[KankaDevice class]]) {
+        NSLog(@"Error registering Kanka device.");
+    }
+    
+    _cullTimer = [NSTimer scheduledTimerWithTimeInterval:10
+                                                  target:self
+                                                selector:@selector(checkForUndiscoveredDevices)
+                                                userInfo:nil
+                                                 repeats:YES];
 }
 
 
@@ -133,47 +132,16 @@
     NSString * uniqueId = args[0];
     NSLog(uniqueId);
     
-    NSMutableDictionary * device = [ _testDevices objectForKey : uniqueId ];
-    if(device != nil)
-    {
-        KrollCallback * onDisconnect = [ device objectForKey:@"onDisconnect" ];
-        NSTimer * timer = [ device objectForKey:@"timer" ];
-        if(timer != nil)
-        {
-            [ timer invalidate ];
-        }
-        [ onDisconnect call:[NSArray array] thisObject:self];
-    }
-}
-
--(void)onTick:(NSTimer *)timer
-{
-    NSLog(@"TICK");
-    NSLog(@"Timer callback for %@", [ timer userInfo ]);
-    NSMutableDictionary * device = [ timer userInfo ];
-    NSNumber * temp = [ device objectForKey:@"temperature" ];
-    NSMutableDictionary * map = [ [NSMutableDictionary alloc]
-                                 initWithObjectsAndKeys:temp, @"temperature", nil ];
-    KrollCallback * onTemperatureChange = [ device objectForKey:@"onTemperatureChange" ];
-    [ onTemperatureChange call:[ NSArray arrayWithObject:map ] thisObject:self ];
     
-    int newTemp = [ temp intValue ] + arc4random_uniform(20) - 10;
-    if(newTemp > 200) {
-        newTemp = 200;
-    } else if(newTemp < 0) {
-        newTemp = 0;
-    }
-    temp = [ NSNumber numberWithInt:newTemp ];
-    [ device setObject:temp forKey:@"temperature" ];
 }
 
 -(void)connectDevice:(id)args
 {
     ENSURE_ARG_COUNT(args, 2);
     NSLog(@"Connect device");
-    NSString * uniqueId = args[0];
+    NSString * uniqueId = [ args[0] retain ];
     NSLog(uniqueId);
-    NSDictionary * params = args[1];
+    NSDictionary * params = [ args[1] retain ];
     
     KrollCallback * onTemperatureChange = params[@"onTemperatureChange"];
     KrollCallback * onThreshold = params[@"onThreshold"];
@@ -182,41 +150,26 @@
     KrollCallback * onConnect = params[@"onConnect"];
     KrollCallback * onDisconnect = params[@"onDisconnect"];
     
-    NSMutableDictionary * device = [ _testDevices objectForKey : uniqueId ];
-    if(device != nil)
+    NSMutableDictionary * deviceData = [ _devices objectForKey : uniqueId ];
+    
+    if(deviceData)
     {
+        [ deviceData setObject:onConnect forKey:@"onTemperatureChange" ];
+        [ deviceData setObject:onConnect forKey:@"onThreshold" ];
+        [ deviceData setObject:onConnect forKey:@"onAlarmAcknowledge" ];
+        [ deviceData setObject:onConnect forKey:@"onPrealarmStateChange" ];
+        [ deviceData setObject:onConnect forKey:@"onConnect" ];
+        [ deviceData setObject:onConnect forKey:@"onDisconnect" ];
         
-        NSNumber * temp = @(80);
-        [ device setObject:onDisconnect forKey:@"onDisconnect" ];
-        [ device setObject:onTemperatureChange forKey:@"onTemperatureChange" ];
-        [ device setObject:temp forKey:@"temperature" ];
-        [ onConnect call:[ NSArray array ] thisObject:self];
-        
-        NSLog(@"Initializing timer");
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            NSTimer * timer = [ NSTimer
-                     scheduledTimerWithTimeInterval:5
-                     target:self
-                     selector: @selector(onTick:)
-                     userInfo: device
-                     repeats: YES ];
-            [ timer fire ];
-            [ device setObject:timer forKey:@"timer" ];
-        });
+        iGrillBLEDevice * device = [ deviceData objectForKey:@"device" ];
+        if(device)
+        {
+            [ _iGrillBLEManager connectiGrill:device ];
+        }
     }
 }
 
 
--(id)test
-{
-    return _test;
-}
-
--(void)setTest:(id)value
-{
-    _test = value;
-}
 
 #pragma mark - Device Manager Protocol
 -(void)forgetDevice:(iGrillBLEDevice *)device
@@ -246,6 +199,18 @@
 
 - (void) igrillBLEManager:(iGrillBLEManager*)manager deviceConnected:(iGrillBLEDevice*)device
 {
+    NSLog(@"Connected!!");
+    NSString * uuid = [[ device deviceId ] UUIDString];
+    
+    NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
+    NSLog(@"%@", deviceData);
+    KrollCallback * onConnect = [ deviceData objectForKey:@"onConnect" ];
+    
+    if(onConnect) {
+        NSLog(@"Calling onConnect");
+        NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
+        [ onConnect call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
+    }
     //We assume that when a device is connected we will display the details.
     // [self displayDeviceDetail:device];
     
@@ -264,13 +229,46 @@
     // [self.tableView reloadData];
 }
 
+-(NSMutableDictionary*) getDeviceMap:(iGrillBLEDevice*)device
+{
+    NSString * uuid = [[ device deviceId ] UUIDString];
+    NSNumber * discovered = @(true);
+    NSMutableDictionary * deviceMap = [[NSMutableDictionary alloc] initWithObjectsAndKeys:@"Device",
+                                    @"deviceName", uuid, @"uniqueId", discovered, @"discovered", nil];
+    return deviceMap;
+
+}
+
 -(void) igrillBLEManager:(iGrillBLEManager*)manager deviceDiscovered:(iGrillBLEDevice*)device
 {
-    // [self.tableView reloadData];
+    NSLog(@"Device discovered");
+    
+    NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
+    NSLog(@"Returning %@", deviceMap);
+    
+    NSMutableDictionary * data = [[ NSMutableDictionary alloc ] initWithCapacity:10 ];
+    [ data setObject:device forKey:@"device" ];
+    [ _devices setObject:data forKey:[[ device deviceId ] UUIDString ]];
+    
+     NSLog(@"Calling onDiscover");
+    
+    if(_onDiscover) {
+        // NSLog(@"%@ %@", _onDiscover, args);
+        [ _onDiscover call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
+        NSLog(@"Done");
+    } else {
+        NSLog(@"On discover null?");
+    }
+    
 }
 
 -(void) igrillBLEManager:(iGrillBLEManager*)manager undiscoveredDevice:(iGrillBLEDevice*)device
 {
+    NSLog(@"Device undiscovered");
+    if(_onDiscover) {
+        NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
+        [ _onUndiscover call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
+    }
     // [self.tableView reloadData];
 }
 
