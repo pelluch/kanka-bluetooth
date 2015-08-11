@@ -1,9 +1,6 @@
 package com.ewin.kanka.bluetooth;
 
-import org.appcelerator.titanium.util.Log;
-
 import android.app.IntentService;
-import android.app.Service;
 import android.content.Intent;
 import android.media.Ringtone;
 

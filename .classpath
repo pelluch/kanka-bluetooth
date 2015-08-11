@@ -9,7 +9,7 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/run/media/pablo/storage/data/src/ewin/kanka/kanka-bluetooth/android/lib/idevices_sdk__1_0_0.jar"/>
+	<classpathentry kind="lib" path="/home/pablo/src/ewin/kanka/kanka-bluetooth/android/lib/idevices_sdk__1_0_0.jar"/>
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-apt.jar"/>
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/kroll-common.jar"/>
 	<classpathentry kind="lib" path="/home/pablo/.titanium/mobilesdk/linux/4.1.0.GA/android/titanium.jar"/>
