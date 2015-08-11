@@ -21,6 +21,7 @@ import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.util.TiActivityResultHandler;
 import org.appcelerator.titanium.util.TiActivitySupport;
+import org.omg.DynamicAny._DynEnumStub;
 import org.appcelerator.kroll.common.Log;
 
 import android.R;
@@ -196,6 +197,7 @@ implements TiActivityResultHandler
 	{
 		if(status == Status.ALREADY_CONNECTING_OR_CONNECTED)
 		{
+			
 			return "ALREADY_CONNECTING_OR_CONNECTED";
 		}
 		else if(status == Status.AUTHENTICATION_FAILED)
@@ -245,6 +247,24 @@ implements TiActivityResultHandler
 		
 		return "";
 	}
+	
+	@Kroll.method
+	public void acknowledgeAlarm(final String uniqueId)
+	{
+		iDevice device = devices.get(uniqueId);
+		if(device != null)
+		{
+			iGrill grill = (iGrill)device;
+			grill.acknowledgeAlarm();
+		}
+		
+		if(ringtone != null && ringtone.isPlaying())
+		{
+			ringtone.stop();
+		}
+		Log.d(LCAT, "Alarm acknowledged");
+	}
+	
 	@Kroll.method
 	public void connectDevice(final String uniqueId, KrollDict params) 
 	{
@@ -377,6 +397,9 @@ implements TiActivityResultHandler
 				public void onConnectionFailed(iDeviceBle device, Status status) {
 					// TODO Auto-generated method stub
 					Log.d(LCAT, "Connection failed with status " + getStatusString(status));
+					if(status == Status.ALREADY_CONNECTING_OR_CONNECTED) {
+						device.disconnect();
+					}
 					
 				}
 
