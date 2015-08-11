@@ -191,7 +191,60 @@ implements TiActivityResultHandler
 
 
 	}
-
+	
+	private String getStatusString(Status status) 
+	{
+		if(status == Status.ALREADY_CONNECTING_OR_CONNECTED)
+		{
+			return "ALREADY_CONNECTING_OR_CONNECTED";
+		}
+		else if(status == Status.AUTHENTICATION_FAILED)
+		{
+			return "AUTHENTICATION_FAILED";
+		}
+		else if(status == Status.BLE_TURNING_OFF)
+		{
+			return "BLE_TURNING_OFF";
+		}
+		else if(status == Status.BLE_TURNING_OFF)
+		{
+			return "BLE_TURNING_OFF";
+		}
+		else if(status == Status.BONDING_FAILED)
+		{
+			return "BONDING_FAILED";
+		}
+		else if(status == Status.DISCOVERING_SERVICES_FAILED)
+		{
+			return "DISCOVERING_SERVICES_FAILED";
+		}
+		else if(status == Status.EXPLICIT_DISCONNECT)
+		{
+			return "EXPLICIT_DISCONNECT";
+		}
+		else if(status == Status.INITIALIZATION_FAILED)
+		{
+			return "INITIALIZATION_FAILED";
+		}
+		else if(status == Status.NATIVE_CONNECTION_FAILED)
+		{
+			return "NATIVE_CONNECTION_FAILED";
+		}
+		else if(status == Status.NULL)
+		{
+			return "NULL";
+		}
+		else if(status == Status.NULL_DEVICE)
+		{
+			return "NULL_DEVICE";
+		}
+		else if(status == Status.ROGUE_DISCONNECT)
+		{
+			return "ROGUE_DISCONNECT";
+		}
+		
+		return "";
+	}
 	@Kroll.method
 	public void connectDevice(final String uniqueId, KrollDict params) 
 	{
@@ -323,14 +376,14 @@ implements TiActivityResultHandler
 				@Override
 				public void onConnectionFailed(iDeviceBle device, Status status) {
 					// TODO Auto-generated method stub
-					Log.d(LCAT, "Connection failed");
-
+					Log.d(LCAT, "Connection failed with status " + getStatusString(status));
+					
 				}
 
 				@Override
 				public void onConnectionFailedWithRetries(iDeviceBle device,
 						Status status) {
-					Log.d(LCAT, "onConnectionFailedWithRetries");
+					Log.d(LCAT, "onConnectionFailedWithRetries with status " + getStatusString(status));
 					// TODO Auto-generated method stub
 
 				}
@@ -522,7 +575,7 @@ implements TiActivityResultHandler
 		iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
 
 		deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
-
+		
 		deviceManager.setListener(new Listener()
 		{
 			@Override public void onDeviceDiscovered(iDevice device)
@@ -548,7 +601,7 @@ implements TiActivityResultHandler
 
 		// Create a BLE manager
 		bleManager = BleManager.get(appContext, deviceManagerConfig.newDefaultBleConfig());
-
+		
 		BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
 
