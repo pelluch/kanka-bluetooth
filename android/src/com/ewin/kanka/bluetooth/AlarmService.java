@@ -14,7 +14,7 @@ public class AlarmService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent arg0) {
 		// TODO Auto-generated method stub
-		Ringtone ringtone = KankaBluetoothModule.getRingtone();
+		Ringtone ringtone = Utils.getRingtone();
 		android.util.Log.d("TiAPI", "Clicked on notification");
 		if(ringtone != null)
 		{

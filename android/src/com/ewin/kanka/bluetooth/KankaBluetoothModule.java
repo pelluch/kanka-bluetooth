@@ -10,9 +10,6 @@ package com.ewin.kanka.bluetooth;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -21,72 +18,36 @@ import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.util.TiActivityResultHandler;
 import org.appcelerator.titanium.util.TiActivitySupport;
-import org.omg.DynamicAny._DynEnumStub;
 import org.appcelerator.kroll.common.Log;
 
-import android.R;
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
 import android.content.Intent;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
-import android.support.v4.app.NotificationCompat;
-
 import com.idevicesinc.device.iDevice;
-import com.idevicesinc.device.iDeviceBle;
 import com.idevicesinc.device.iDeviceManager;
 import com.idevicesinc.device.iDeviceManager.Listener;
 import com.idevicesinc.device.iDeviceManagerConfig;
 import com.idevicesinc.device.iGrill;
-import com.idevicesinc.device.iGrillTempUnit;
-import com.idevicesinc.device.iProbe;
-import com.idevicesinc.device.iProbe.PreAlarmState;
 import com.idevicesinc.device.metadata.Kanka;
-import com.idevicesinc.sweetblue.BleDevice;
-import com.idevicesinc.sweetblue.BleDevice.ConnectionFailListener.Status;
-import com.idevicesinc.sweetblue.BleDeviceIterator;
-import com.idevicesinc.sweetblue.BleDeviceState;
 import com.idevicesinc.sweetblue.BleManager;
 
 @Kroll.module(name = "KankaBluetooth", id = "com.ewin.kanka.bluetooth")
 public class KankaBluetoothModule extends KrollModule implements TiActivityResultHandler {
 
-	// Standard Debugging variables
 	public static final String LCAT = "TiAPI";
-	// private static Random random = new Random();
-	// private static final boolean DBG = TiConfig.LOGD;
 	private iDeviceManager deviceManager;
 	public static BleManager bleManager;
 	private int requestCode;
-	private HashMap<String, iDevice> devices = new HashMap<String, iDevice>();
-	private HashMap<String, Boolean> thresholded = new HashMap<String, Boolean>();
+	private HashMap<String, KankaDevice> devices = new HashMap<String, KankaDevice>();
 
-	private final static AtomicInteger notificationCounter = new AtomicInteger(0);
-	private static Ringtone ringtone;
+	
 
-	// You can define constants with @Kroll.constant, for example:
-	// @Kroll.constant public static final String EXTERNAL_NAME = value;
 
 	public KankaBluetoothModule() {
 		super();
 	}
 
-	public static Ringtone getRingtone() {
-		return ringtone;
-	}
-
-	@Kroll.onAppCreate
-	public static void onAppCreate(TiApplication app) {
-		Log.d(LCAT, "inside onAppCreate");
-		// put module init code that needs to run when the application is
-		// created
-
-	}
+	
 
 	@Override
 	public void onDestroy(Activity activity) {
@@ -109,33 +70,25 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 
 	@Override
 	public void onResume(Activity activity) {
-		// TODO Auto-generated method stub
 		super.onResume(activity);
-		if(bleManager != null) { bleManager.onResume(); }		 
-		 
-		Log.d(LCAT, "module onResume");
+		if(bleManager != null) { bleManager.onResume(); }		
 	}
 
 	@Override
 	public void onStart(Activity activity) {
-		// TODO Auto-generated method stub
 		super.onStart(activity);
-		Log.d(LCAT, "module onStart");
 	}
 
 	@Override
 	public void onPause(Activity activity) {
-		// TODO Auto-generated method stub
 		super.onPause(activity);
 		
 		if(bleManager != null) { bleManager.onPause(); }
 		 
-		Log.d(LCAT, "module onPause");
 	}
 
 	@Override
 	public void onStop(Activity activity) {
-		// TODO Auto-generated method stub
 		super.onStop(activity);
 		Log.d(LCAT, "module onStop");
 	}
@@ -143,359 +96,60 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	@Kroll.method
 	public void disconnectDevice(String uniqueId) {
 
-		iDevice device = devices.get(uniqueId);
+		KankaDevice device = devices.get(uniqueId);
 		if (device != null) {
 			device.disconnect();
 		}
 	}
 
-	private void sendThresholdNotification() {
+	
 
-		Context context = TiApplication.getInstance();
-		Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-		Ringtone ringtoneManager = RingtoneManager.getRingtone(context, alarmTone);
-		if (ringtone != null) {
-			ringtone.stop();
-		}
-		ringtone = ringtoneManager;
-		ringtone.play();
-
-		Intent notificationIntent = new Intent(context, AlarmService.class);
-		PendingIntent pendingIntent = PendingIntent.getService(context, 0, notificationIntent, 0);
-
-		NotificationCompat.Builder builder = new NotificationCompat.Builder(context).setWhen(System.currentTimeMillis())
-				.setSmallIcon(R.drawable.ic_dialog_alert).setContentTitle("Cocción finalizada")
-				.setContentText("Ha finalizado la cocción. Haga click para descartar la alarma.")
-				.setContentIntent(pendingIntent);
-
-		Notification notification = builder.build();
-		notification.flags = Notification.FLAG_AUTO_CANCEL | Notification.FLAG_SHOW_LIGHTS;
-
-		NotificationManager manager = (NotificationManager) context.getSystemService(Activity.NOTIFICATION_SERVICE);
-		manager.notify(notificationCounter.incrementAndGet(), notification);
-
-	}
-
-	private String getStatusString(Status status) {
-		if (status == Status.ALREADY_CONNECTING_OR_CONNECTED) {
-
-			return "ALREADY_CONNECTING_OR_CONNECTED";
-		} else if (status == Status.AUTHENTICATION_FAILED) {
-			return "AUTHENTICATION_FAILED";
-		} else if (status == Status.BLE_TURNING_OFF) {
-			return "BLE_TURNING_OFF";
-		} else if (status == Status.BLE_TURNING_OFF) {
-			return "BLE_TURNING_OFF";
-		} else if (status == Status.BONDING_FAILED) {
-			return "BONDING_FAILED";
-		} else if (status == Status.DISCOVERING_SERVICES_FAILED) {
-			return "DISCOVERING_SERVICES_FAILED";
-		} else if (status == Status.EXPLICIT_DISCONNECT) {
-			return "EXPLICIT_DISCONNECT";
-		} else if (status == Status.INITIALIZATION_FAILED) {
-			return "INITIALIZATION_FAILED";
-		} else if (status == Status.NATIVE_CONNECTION_FAILED) {
-			return "NATIVE_CONNECTION_FAILED";
-		} else if (status == Status.NULL) {
-			return "NULL";
-		} else if (status == Status.NULL_DEVICE) {
-			return "NULL_DEVICE";
-		} else if (status == Status.ROGUE_DISCONNECT) {
-			return "ROGUE_DISCONNECT";
-		}
-
-		return "";
-	}
+	
 
 	@Kroll.method
 	public void acknowledgeAlarm(final String uniqueId) {
-		iDevice device = devices.get(uniqueId);
-		if (device != null) {
-			iGrill grill = (iGrill) device;
-			grill.acknowledgeAlarm();
+		KankaDevice device = devices.get(uniqueId);
+		if (device != null) 
+		{
+			device.acknowledgeAlarm();
 		}
 
-		if (ringtone != null && ringtone.isPlaying()) {
-			ringtone.stop();
-		}
-		Log.d(LCAT, "Alarm acknowledged");
+		Utils.stopRingtone();
+		
 	}
 
 	@Kroll.method
 	public void connectDevice(final String uniqueId, KrollDict params) {
-
-		final KrollFunction tempCallback = (KrollFunction) params.get("onTemperatureChange");
-		final KrollFunction thresholdCallback = (KrollFunction) params.get("onThreshold");
-		final KrollFunction alarmCallback = (KrollFunction) params.get("onAlarmAcknowledge");
-		final KrollFunction preAlarmCallback = (KrollFunction) params.get("onPrealarmStateChange");
-		final KrollFunction connectCallback = (KrollFunction) params.get("onConnect");
-		final KrollFunction disconnectCallback = (KrollFunction) params.get("onDisconnect");
-
-		final Integer lowThreshold = (Integer) params.get("lowThreshold");
-		final Integer highThreshold = (Integer) params.get("highThreshold");
-		final Integer preAlarmDelta = (Integer) params.get("preAlarmDelta");
-
-		final iDevice device = devices.get(uniqueId);
-		if (device != null) {
-
-			final iGrill igrill = (iGrill) device;
-
-			final int low, high;
-			final short delta;
-
-			igrill.getProbe(0).clearThresholds();
-
-			// igrill.setTempUnit(iGrillTempUnit.C);
-
-			if (lowThreshold != null) {
-				Log.d(LCAT, "Setting low to " + lowThreshold.intValue());
-				low = lowThreshold.intValue();
-			} else {
-				low = 0;
-			}
-
-			if (highThreshold != null) {
-				Log.d(LCAT, "Setting high to " + highThreshold.intValue());
-				high = highThreshold.intValue();
-			} else {
-				high = 100;
-			}
-
-			if (preAlarmDelta != null) {
-				Log.d(LCAT, "Setting preAlarmDelta to " + preAlarmDelta.shortValue());
-				delta = preAlarmDelta.shortValue();
-			} else {
-				delta = 0;
-			}
-			
-			Log.d(LCAT, "Setting temp unit");
-			igrill.setTempUnit(iGrillTempUnit.C);
-			Log.d(LCAT, "Setting thresh");
-			igrill.getProbe(0).setThresholds(low, high);
-			Log.d(LCAT, "Setting pre");
-			igrill.getProbe(0).setPreAlarmDelta(delta);
-			Log.d(LCAT, "Setting probe listener");
-			igrill.setProbeListener(new iProbe.Listener() {
-				@Override
-				public void onProbeEvent(final iProbe probe, Event event) {
-
-					// Whenever the temperature changes, refresh the
-					// temperature, thresholds, and pre-alarm delta elements in
-					// the GUI
-					if (event == Event.TEMPERATURE_CHANGED) {
-						if (tempCallback != null) {
-							tempCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-					} else if (event == Event.THRESHOLD_REACHED) {
-						if (thresholdCallback != null) {
-
-							Boolean deviceThresholded = thresholded.get(uniqueId);
-							if (deviceThresholded != null) {
-								if (deviceThresholded) {
-									return;
-								} else {
-									thresholded.put(uniqueId, true);
-								}
-							} else {
-								thresholded.put(uniqueId, true);
-							}
-							sendThresholdNotification();
-							thresholdCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-					} else if (event == Event.ALARM_ACKNOWLEDGED) {
-						if (alarmCallback != null) {
-							alarmCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-					} else if (event == Event.PRE_ALARM_STATE_CHANGED) {
-						if (preAlarmCallback != null) {
-
-							PreAlarmState state = igrill.getProbe(0).getPreAlarmState();
-							if (state == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT) {
-								// map.put("state",
-								// "ACKNOWLEDGED_OR_REDUNDANT");
-							} else if (state == PreAlarmState.ACTIVE) {
-								// map.put("state", "ACTIVE");
-							} else if (state == PreAlarmState.NOT_ACTIVE) {
-								// map.put("state", "NOT_ACTIVE");
-							}
-							// map.put("event_type", "PRE_ALARM_STATE_CHANGED");
-
-							// map.put("temperature", currentTemp);
-							preAlarmCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-					}
-				}
-
-			});
-			Log.d(LCAT, "Setting listener");
-			igrill.setListener(new iGrill.Listener() {
-
-				@Override
-				public void onConnectionFailed(iDeviceBle device, Status status) {
-					// TODO Auto-generated method stub
-					Log.d(LCAT, "Connection failed with status " + getStatusString(status));
-					if (status == Status.ALREADY_CONNECTING_OR_CONNECTED) {
-						device.disconnect();
-					}
-
-				}
-
-				@Override
-				public void onConnectionFailedWithRetries(iDeviceBle device, Status status) {
-					Log.d(LCAT, "onConnectionFailedWithRetries with status " + getStatusString(status));
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void onDeviceStateChange(iDeviceBle device, int arg1, int arg2, int arg3) {
-					Log.d(LCAT, "onDeviceStateChange");
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void onDeviceStateChangeForView(iDeviceBle device, BleDeviceState state) {
-					if (state == BleDeviceState.CONNECTING) {
-						Log.d(LCAT, "CONNECTING");
-
-					} else if (state == BleDeviceState.DISCOVERING_SERVICES) {
-						Log.d(LCAT, "DISCOVERING_DEVICES");
-					} else if (state == BleDeviceState.AUTHENTICATING) {
-						Log.d(LCAT, "AUTHENTICATING");
-					} else if (state == BleDeviceState.INITIALIZING) {
-						Log.d(LCAT, "INITIALIZING");
-					}
-					// When the initialized state is reached, the app hass fully
-					// connected to the thermometer via BLE
-					else if (state == BleDeviceState.INITIALIZED) {
-
-						Log.d(LCAT, "INITIALIZED");
-						iDevice connected = devices.get(device.getUniqueId());
-						if (connected != null) {
-							iGrill grill = (iGrill) connected;
-							grill.setTempUnit(iGrillTempUnit.C);
-							grill.getProbe(0).setThresholds(low, high);
-							grill.getProbe(0).setPreAlarmDelta(delta);
-
-						}
-						if (connectCallback != null) {
-
-							Log.d(LCAT, "Calling connectCallback");
-							connectCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-
-						int currentTemp = igrill.getProbe(0).getCurrentTemp();
-						if (currentTemp > -1000) {
-							if (tempCallback != null) {
-								Log.d(LCAT, "TEMPERATURE_CHANGED " + currentTemp);
-								tempCallback.callAsync(getKrollObject(), getDeviceMap(device));
-							}
-						}
-
-					} else if (state == BleDeviceState.DISCONNECTED) {
-						Log.d(LCAT, "DISCONNECTED");
-						if (disconnectCallback != null) {
-							disconnectCallback.callAsync(getKrollObject(), getDeviceMap(device));
-						}
-
-					} else if (state == BleDeviceState.RECONNECTING_LONG_TERM) {
-						Log.d(LCAT, "ATTEMPTING_RECONNECT");
-					}
-
-				}
-
-				@Override
-				public void onDeviceEvent(iDevice device, Event event) {
-					if (event == Event.BATTERY_LEVEL_UPDATED) {
-						if (igrill.hasBatteryLevel()) {
-							// Do something
-						}
-					}
-					// After connecting to a device, it takes a few moments to
-					// read the firmware version from the device. When the
-					// firmware version is
-					// successfully read, the device event
-					// FIRMWARE_VERSION_AVAILABLE occurs.
-					else if (event == Event.FIRMWARE_VERSION_AVAILABLE) {
-
-						if (igrill.isFirmwareUpdateAvailable()) {
-							// Normally, this is where you can check if there
-							// are any firmware updates available,
-							// and if so, call device.updateFirmware(). However,
-							// for the purposes of this sample app,
-							// we simply added an "Update Firmware" button so
-							// you can force the firmware update.
-						}
-					} else if (event == Event.FIRMWARE_UPDATE_STARTED) {
-
-					} else if (event == Event.FIRMWARE_UPDATE_PROGRESS) {
-
-					} else if (event == Event.FIRMWARE_UPDATE_COMPLETED) {
-
-					} else if (event == Event.FIRMWARE_UPDATE_FAILED) {
-
-					}
-
-				}
-
-				@Override
-				public void onConnectedProbeCountChanged(iGrill arg0) {
-					// TODO Auto-generated method stub
-
-				}
-
-			});
-			Log.d(LCAT, "Setting temp unit");
-			igrill.setTempUnit(iGrillTempUnit.C);
-			Log.d(LCAT, "Connecting");
-			if(!igrill.getProbe(0).isConnected()) {
-				device.connect();
-			} else {
-				connectCallback.callAsync(getKrollObject(), getDeviceMap(device));
-			}
-			
-
-		}
-
-	}
-
-	private HashMap<String, Object> getDeviceMap(iDevice device) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		map.put("deviceName", device.getDeviceName());
-		map.put("uniqueId", device.getUniqueId());
-		iGrill grill = (iGrill) device;
-		map.put("batteryLevel", grill.getBatteryLevel());
-		map.put("firmwareVersion", grill.getFirmwareVersion());
-		iGrillTempUnit unit = grill.getProbe(0).getTempUnit();
-		String unitString = "";
-		if (unit == iGrillTempUnit.C) {
-			unitString = "C";
-		} else {
-			unitString = "F";
-		}
-		map.put("temperatureUnit", unitString);
-		map.put("temperature", grill.getProbe(0).getCurrentTemp());
-		map.put("highThreshold", grill.getProbe(0).getHighThreshold(iGrillTempUnit.C));
-		map.put("lowThreshold", grill.getProbe(0).getLowThreshold(iGrillTempUnit.C));
-		map.put("preAlarmDelta", grill.getProbe(0).getPreAlarmDelta());
-		PreAlarmState state = grill.getProbe(0).getPreAlarmState();
-		String stateString = "";
-		if (state == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT) {
-			stateString = "ACKNOWLEDGED_OR_REDUNDANT";
-		} else if (state == PreAlarmState.ACTIVE) {
-			stateString = "ACTIVE";
-		} else if (state == PreAlarmState.NOT_ACTIVE) {
-			stateString = "NOT_ACTIVE";
-		}
 		
-		boolean connected = grill.getProbe(0).isConnected();
-		map.put("preAlarmState", stateString);
-		map.put("connected", connected);
+		final KankaDevice device = devices.get(uniqueId);
+		if (device != null) 
+		{
+			device.connect(params);
+		}
 
-		return map;
 	}
-
+	
+	@Kroll.method
+	public void setRecipe(final String uniqueId, KrollDict params)
+	{
+		KankaDevice device = devices.get(uniqueId);
+		if(device != null) 
+		{
+			device.setRecipe(params);			
+		}
+	}
+	
+	@Kroll.method
+	public HashMap<String, Object> getDevice(String uniqueId)
+	{
+		KankaDevice device = devices.get(uniqueId);
+		if(device != null)
+		{
+			return device.getAttributes();
+		}
+		return null;
+	}
+	
 	@Kroll.method
 	public void startScan(KrollDict params) {
 
@@ -506,8 +160,6 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		Activity activity = appContext.getCurrentActivity();
 		TiActivitySupport support = (TiActivitySupport) activity;
 
-		// Create a device manager, and give it a listener to listen for
-		// discovered/undiscovered devices
 		iDeviceManagerConfig deviceManagerConfig = new iDeviceManagerConfig(new Kanka());
 
 		deviceManager = iDeviceManager.get(activity, deviceManagerConfig);
@@ -521,16 +173,19 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 				Log.d(LCAT, "Current high threshold is " + igrill.getProbe(0).getHighThreshold());
 				Log.d(LCAT, "Current delta is " + igrill.getProbe(0).getPreAlarmDelta());
 				// updateDiscoveredDevicesList();
-
-				devices.put(device.getUniqueId(), device);
-				onDiscover.callAsync(getKrollObject(), getDeviceMap(device));
+				KankaDevice kankaDevice = new KankaDevice((iGrill)device, krollObject);
+				devices.put(device.getUniqueId(), kankaDevice);
+				onDiscover.callAsync(krollObject, kankaDevice.getAttributes());
 			}
 
 			@Override
 			public void onDeviceUndiscovered(iDevice device) {
 				Log.d(LCAT, "Device Undiscovered: " + device.getDeviceName());
-				onUndiscover.callAsync(getKrollObject(), getDeviceMap(device));
-				// updateDiscoveredDevicesList();
+				KankaDevice kankaDevice = devices.get(device.getUniqueId());
+				if(kankaDevice != null)
+				{
+					onUndiscover.callAsync(krollObject, kankaDevice.getAttributes());
+				}
 			}
 		});
 
@@ -563,8 +218,9 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 			iDevice device = it.next();
 			Log.d(LCAT, "Found " + device.getDeviceName());
 			iGrill grill = (iGrill)device;
-			devices.put(device.getUniqueId(), device);	
-			onDiscover.callAsync(getKrollObject(), getDeviceMap(device));
+			KankaDevice kankaDevice = new KankaDevice(grill, krollObject);
+			devices.put(device.getUniqueId(), kankaDevice);	
+			onDiscover.callAsync(getKrollObject(), kankaDevice.getAttributes());
 					
 		}
 		
