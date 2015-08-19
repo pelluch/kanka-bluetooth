@@ -104,7 +104,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 
 	
 
-	
+
 
 	@Kroll.method
 	public void acknowledgeAlarm(final String uniqueId) {
@@ -120,11 +120,16 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 
 	@Kroll.method
 	public void connectDevice(final String uniqueId, KrollDict params) {
-		
+		Log.d(LCAT, "Connecting device");
 		final KankaDevice device = devices.get(uniqueId);
 		if (device != null) 
 		{
+			Log.d(LCAT, "Device exists");
 			device.connect(params);
+		}
+		else
+		{
+			Log.e(LCAT, "Device does not exist");
 		}
 
 	}
@@ -140,12 +145,13 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	}
 	
 	@Kroll.method
-	public HashMap<String, Object> getDevice(String uniqueId)
+	public KrollDict getDevice(String uniqueId)
 	{
 		KankaDevice device = devices.get(uniqueId);
 		if(device != null)
 		{
-			return device.getAttributes();
+			KrollDict dict = new KrollDict(device.getAttributes());
+			return dict;
 		}
 		return null;
 	}
