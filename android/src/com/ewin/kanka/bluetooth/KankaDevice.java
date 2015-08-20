@@ -208,7 +208,7 @@ public class KankaDevice {
 		final KrollFunction preAlarmCallback = (KrollFunction) params.get("onPrealarmStateChange");
 		final KrollFunction connectCallback = (KrollFunction) params.get("onConnect");
 		final KrollFunction disconnectCallback = (KrollFunction) params.get("onDisconnect");
-
+		final KrollFunction onConnectedProbeCountChange = (KrollFunction)params.get("onConnectedProbeCountChange");
 		final Integer lowThreshold = (Integer) params.get("lowThreshold");
 		final Integer highThreshold = (Integer) params.get("highThreshold");
 		final Integer preAlarmDelta = (Integer) params.get("preAlarmDelta");
@@ -389,7 +389,9 @@ public class KankaDevice {
 				@Override
 				public void onConnectedProbeCountChanged(iGrill arg0) {
 					// TODO Auto-generated method stub
-
+					if(onConnectedProbeCountChange != null) {
+						onConnectedProbeCountChange.callAsync(_krollObject, getAttributes());
+					}
 				}
 
 			});
