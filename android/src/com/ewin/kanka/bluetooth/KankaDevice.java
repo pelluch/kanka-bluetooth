@@ -55,6 +55,7 @@ public class KankaDevice {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		if(_grill != null && _grill.getProbe(0) != null)
 		{
+			
 			iProbe probe = _grill.getProbe(0);
 			if(_highThreshold > 0) {
 				probe.setLowThreshold(_lowThreshold);
@@ -72,7 +73,8 @@ public class KankaDevice {
 			} else {
 				unitString = "F";
 			}
-
+			
+			map.put("connectedProbeCount", _grill.getConnectedProbeCount());
 			map.put("temperatureUnit", unitString);
 			map.put("temperature", probe.getCurrentTemp());
 			map.put("highThreshold", probe.getHighThreshold(iGrillTempUnit.C));
