@@ -278,7 +278,7 @@ public class KankaDevice {
 					// TODO Auto-generated method stub
 					Log.d(KankaBluetoothModule.LCAT, "Connection failed with status " + getStatusString(status));
 					if (status == Status.ALREADY_CONNECTING_OR_CONNECTED) {
-						device.disconnect();
+						// device.disconnect();
 					}
 
 				}
