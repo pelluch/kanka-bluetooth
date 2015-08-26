@@ -10,6 +10,7 @@ package com.ewin.kanka.bluetooth;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map.Entry;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -156,15 +157,16 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 			String termUnit = properties.getString("termUnit", "°C");
 			if(termUnit.equals("°C")) {
 				this.tempUnit = iGrillTempUnit.C;
-			} else {
+			} else if(termUnit.equals("°F")){
 				this.tempUnit = iGrillTempUnit.F;
 			}
 		} else {
 			this.tempUnit = iGrillTempUnit.C;
 		}
-		Iterator it = devices.entrySet().iterator();
+		Iterator<Entry<String, KankaDevice>> it = devices.entrySet().iterator();
 		while(it.hasNext()) {
-			KankaDevice device = (KankaDevice)it.next();
+			Entry<String, KankaDevice> entry = it.next();
+			KankaDevice device = entry.getValue();
 			device.setTemperatureUnit(this.tempUnit);
 		}
 	}
