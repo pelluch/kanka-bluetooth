@@ -16,6 +16,7 @@ import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.titanium.TiApplication;
+import org.appcelerator.titanium.TiProperties;
 import org.appcelerator.titanium.util.TiActivityResultHandler;
 import org.appcelerator.titanium.util.TiActivitySupport;
 import org.appcelerator.kroll.common.Log;
@@ -28,6 +29,7 @@ import com.idevicesinc.device.iDeviceManager;
 import com.idevicesinc.device.iDeviceManager.Listener;
 import com.idevicesinc.device.iDeviceManagerConfig;
 import com.idevicesinc.device.iGrill;
+import com.idevicesinc.device.iGrillTempUnit;
 import com.idevicesinc.device.metadata.Kanka;
 import com.idevicesinc.sweetblue.BleManager;
 
@@ -39,7 +41,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	public static BleManager bleManager;
 	private int requestCode;
 	private HashMap<String, KankaDevice> devices = new HashMap<String, KankaDevice>();
-
+	private iGrillTempUnit tempUnit = iGrillTempUnit.C;
 	
 
 
@@ -111,6 +113,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		KankaDevice device = devices.get(uniqueId);
 		if (device != null) 
 		{
+			Log.d(LCAT, "Calling ack for device");
 			device.acknowledgeAlarm();
 		}
 
@@ -145,6 +148,28 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	}
 	
 	@Kroll.method
+	public void setTemperatureUnit()
+	{
+		Log.d(LCAT, "Setting temperature unit");
+		TiProperties properties = TiApplication.getInstance().getAppProperties();
+		if(properties.hasProperty("termUnit")) {
+			String termUnit = properties.getString("termUnit", "°C");
+			if(termUnit.equals("°C")) {
+				this.tempUnit = iGrillTempUnit.C;
+			} else {
+				this.tempUnit = iGrillTempUnit.F;
+			}
+		} else {
+			this.tempUnit = iGrillTempUnit.C;
+		}
+		Iterator it = devices.entrySet().iterator();
+		while(it.hasNext()) {
+			KankaDevice device = (KankaDevice)it.next();
+			device.setTemperatureUnit(this.tempUnit);
+		}
+	}
+	
+	@Kroll.method
 	public KrollDict getDevice(String uniqueId)
 	{
 		KankaDevice device = devices.get(uniqueId);
@@ -159,6 +184,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	@Kroll.method
 	public void startScan(KrollDict params) {
 
+		setTemperatureUnit();
 		final KrollFunction onDiscover = (KrollFunction) params.get("onDiscover");
 		final KrollFunction onUndiscover = (KrollFunction) params.get("onUndiscover");
 
@@ -179,7 +205,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 				Log.d(LCAT, "Current high threshold is " + igrill.getProbe(0).getHighThreshold());
 				Log.d(LCAT, "Current delta is " + igrill.getProbe(0).getPreAlarmDelta());
 				// updateDiscoveredDevicesList();
-				KankaDevice kankaDevice = new KankaDevice((iGrill)device, krollObject);
+				KankaDevice kankaDevice = new KankaDevice((iGrill)device, tempUnit, krollObject);
 				devices.put(device.getUniqueId(), kankaDevice);
 				onDiscover.callAsync(krollObject, kankaDevice.getAttributes());
 			}
@@ -224,7 +250,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 			iDevice device = it.next();
 			Log.d(LCAT, "Found " + device.getDeviceName());
 			iGrill grill = (iGrill)device;
-			KankaDevice kankaDevice = new KankaDevice(grill, krollObject);
+			KankaDevice kankaDevice = new KankaDevice(grill, tempUnit, krollObject);
 			devices.put(device.getUniqueId(), kankaDevice);	
 			onDiscover.callAsync(getKrollObject(), kankaDevice.getAttributes());
 					
