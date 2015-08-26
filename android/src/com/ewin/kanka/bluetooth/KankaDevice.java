@@ -39,6 +39,17 @@ public class KankaDevice {
 	}
 
 	public void setTemperatureUnit(iGrillTempUnit tempUnit) {
+		if(tempUnit != this._tempUnit) {
+			if(tempUnit == iGrillTempUnit.C) {
+				_highThreshold = (int)(((float)_highThreshold - 32.0)*5.0/9.0);
+				_lowThreshold = (int)(((float)_lowThreshold - 32.0)*5.0/9.0);
+				_preAlarmDelta = (short)((float)_preAlarmDelta*5.0/9.0);
+			} else {
+				_highThreshold = (int)((float)_highThreshold*9.0/5.0 + 32.0);
+				_lowThreshold = (int)((float)_lowThreshold*9.0/5.0 + 32.0);
+				_preAlarmDelta = (short)((float)_preAlarmDelta*9.0/5.0);
+			}
+		}
 		this._tempUnit = tempUnit;
 		if (_grill != null) {
 			_grill.setTempUnit(tempUnit);
