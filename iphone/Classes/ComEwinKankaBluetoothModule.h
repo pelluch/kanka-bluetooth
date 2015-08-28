@@ -23,6 +23,7 @@
     KrollCallback * _onDiscover;
     KrollCallback * _onUndiscover;
     ComEwinKankaBluetoothModule * _this;
+    iGrillTempUnit _tempUnit;
 }
 
 @end

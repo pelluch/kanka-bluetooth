@@ -26,8 +26,6 @@
 		24DD6CFA1134B3F500162E58 /* ComEwinKankaBluetoothModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 24DD6CF81134B3F500162E58 /* ComEwinKankaBluetoothModule.m */; };
 		24DE9E1111C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.h in Headers */ = {isa = PBXBuildFile; fileRef = 24DE9E0F11C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.h */; };
 		24DE9E1211C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m in Sources */ = {isa = PBXBuildFile; fileRef = 24DE9E1011C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m */; };
-		6E82F4721B792BFC00B46E72 /* Probe.m in Sources */ = {isa = PBXBuildFile; fileRef = 6E82F4711B792BFC00B46E72 /* Probe.m */; };
-		6E82F4741B792C1300B46E72 /* Probe.h in Headers */ = {isa = PBXBuildFile; fileRef = 6E82F4731B792C1300B46E72 /* Probe.h */; };
 		6EB954831B68364B0020506A /* libiGrillBLEAPI.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EB954751B68364B0020506A /* libiGrillBLEAPI.a */; };
 		6EB954841B68364B0020506A /* libPeripheral.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EB954761B68364B0020506A /* libPeripheral.a */; };
 		6EB954851B68364B0020506A /* iGrillBLEAPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EB954781B68364B0020506A /* iGrillBLEAPI.h */; };
@@ -58,8 +56,6 @@
 		24DD6D1B1134B66800162E58 /* titanium.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = titanium.xcconfig; sourceTree = "<group>"; };
 		24DE9E0F11C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ComEwinKankaBluetoothModuleAssets.h; path = Classes/ComEwinKankaBluetoothModuleAssets.h; sourceTree = "<group>"; };
 		24DE9E1011C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ComEwinKankaBluetoothModuleAssets.m; path = Classes/ComEwinKankaBluetoothModuleAssets.m; sourceTree = "<group>"; };
-		6E82F4711B792BFC00B46E72 /* Probe.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Probe.m; path = Classes/Probe.m; sourceTree = "<group>"; };
-		6E82F4731B792C1300B46E72 /* Probe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Probe.h; path = Classes/Probe.h; sourceTree = "<group>"; };
 		6EB7308A1B78556700D8A12A /* BluetoothManager.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BluetoothManager.framework; path = System/Library/PrivateFrameworks/BluetoothManager.framework; sourceTree = SDKROOT; };
 		6EB954751B68364B0020506A /* libiGrillBLEAPI.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libiGrillBLEAPI.a; sourceTree = "<group>"; };
 		6EB954761B68364B0020506A /* libPeripheral.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libPeripheral.a; sourceTree = "<group>"; };
@@ -127,8 +123,6 @@
 				24DE9E1011C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m */,
 				24DD6CF71134B3F500162E58 /* ComEwinKankaBluetoothModule.h */,
 				24DD6CF81134B3F500162E58 /* ComEwinKankaBluetoothModule.m */,
-				6E82F4711B792BFC00B46E72 /* Probe.m */,
-				6E82F4731B792C1300B46E72 /* Probe.h */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -216,7 +210,6 @@
 			files = (
 				6EB954851B68364B0020506A /* iGrillBLEAPI.h in Headers */,
 				6EB954891B68364B0020506A /* iGrillBLEManager.h in Headers */,
-				6E82F4741B792C1300B46E72 /* Probe.h in Headers */,
 				AA747D9F0F9514B9006C5449 /* ComEwinKankaBluetooth_Prefix.pch in Headers */,
 				6EB9548A1B68364B0020506A /* iGrillBLEManagerDelegate.h in Headers */,
 				24DD6CF91134B3F500162E58 /* ComEwinKankaBluetoothModule.h in Headers */,
@@ -298,7 +291,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6E82F4721B792BFC00B46E72 /* Probe.m in Sources */,
 				24DD6CFA1134B3F500162E58 /* ComEwinKankaBluetoothModule.m in Sources */,
 				24DE9E1211C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m in Sources */,
 			);
