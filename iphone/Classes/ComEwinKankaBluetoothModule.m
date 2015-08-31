@@ -284,30 +284,60 @@
     NSLog(@"Bluetooth unavailable");
 }
 
+- (void) unblockUpdate:(NSTimer *)timer
+{
+    NSMutableDictionary * deviceData = [ timer userInfo ];
+    if(deviceData)
+    {
+        [ deviceData setObject:[ NSNumber numberWithBool:NO ] forKey:@"blocked"];
+        [ timer invalidate ];
+    }
+}
+
 - (void) dataUpdated:(iGrillBLEDevice *)device
 {
+    
     NSString * uuid = [[ device deviceId ] UUIDString];
     NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
     
     if(deviceData)
     {
-        NSLog(@"Data updated");
+        NSNumber * blocked = [ deviceData objectForKey:@"blocked" ];
+        if(blocked != nil)
+        {
+            BOOL blockedBool = [ blocked boolValue ];
+            if(blockedBool) {
+                return;
+            }
+        }
+        
+        [deviceData setObject:[ NSNumber numberWithBool:YES ] forKey:@"blocked" ];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSTimer * blockTimer = [NSTimer scheduledTimerWithTimeInterval:2
+                                                          target:self
+                                                                  selector:@selector(unblockUpdate:)
+                                                        userInfo:deviceData
+                                                         repeats:YES];
+            
+        });
+        
+        // NSLog(@"Data updated");
         NSInteger newTemp = [ device currentTemperatureForProbe:0 ];
-        NSLog(@"Temp: %d", newTemp);
+        // NSLog(@"Temp: %d", newTemp);
         NSInteger temp = [ [ deviceData objectForKey:@"temperature" ] intValue ];
-        NSLog(@"Stored temp: %d", temp);
+        // NSLog(@"Stored temp: %d", temp);
         NSInteger highTemp = [ device highThresholdForProbe:0 inUnit:iGrillTempUnit_C ];
         NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
-        NSLog(@"Map: %@", deviceMap);
+        // NSLog(@"Map: %@", deviceMap);
         
         NSInteger highInt = [ [ deviceData objectForKey:@"highThreshold" ] integerValue ];
         NSInteger lowInt = [ [ deviceData objectForKey:@"lowThreshold" ] integerValue ];
-        NSLog(@"High: %d low: %d", highInt, lowInt);
+        // NSLog(@"High: %d low: %d", highInt, lowInt);
         
         if([ device tempUnitForProbe:0 ] == iGrillTempUnit_C) {
-            NSLog(@"Probe temp in Celsius");
+            // NSLog(@"Probe temp in Celsius");
         } else {
-            NSLog(@"Probe temp in Fahrenheit, converting");
+            // NSLog(@"Probe temp in Fahrenheit, converting");
             float highFloat = (highInt*9.0/5.0 + 32.0);
             float lowFloat = lowInt > -2000.0 ? (lowInt*9.0/5.0 + 32.0) : -2000.0;
             lowInt = (NSInteger)roundf(lowFloat);
@@ -316,7 +346,7 @@
         }
         
         
-        [ device setThresholdsForProbe:0 high:highInt low:lowInt ];
+        // [ device setThresholdsForProbe:0 high:highInt low:lowInt ];
         
         if(newTemp != temp)
         {
@@ -411,12 +441,15 @@
         NSLog(@"High: %d low: %d", highInt, lowInt);
     }
     
+    // NSNumber * number = [ deviceData objectForKey:@"registered]
     
     [ device setThresholdsForProbe:0 high:highInt low:lowInt ];
     //[ device setThresholdsForProbe:0 high:[ [deviceData objectForKey:@"highThreshold"] integerValue ]
     //                            low:[ [deviceData objectForKey:@"lowThreshold"] integerValue ]];
     if(onConnect) {
         [ deviceData setObject:[ NSNumber numberWithInteger:[ device currentTemperatureForProbe:0 ]] forKey:@"temperature" ];
+        NSLog(@"Registering data updated observer");
+        
         [ device registerDataObserver:self withSelector:@selector(dataUpdated:)];
         
         NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
