@@ -27,7 +27,7 @@ public class KankaDevice {
 	private short _preAlarmDelta;
 	private boolean _acknowledged = false;
 	private iGrillTempUnit _tempUnit;
-
+	
 	public KankaDevice(iGrill grill, iGrillTempUnit tempUnit, KrollObject krollObject) {
 		_grill = grill;
 		_krollObject = krollObject;
@@ -218,6 +218,8 @@ public class KankaDevice {
 		final KrollFunction preAlarmCallback = (KrollFunction) params.get("onPrealarmStateChange");
 		final KrollFunction connectCallback = (KrollFunction) params.get("onConnect");
 		final KrollFunction disconnectCallback = (KrollFunction) params.get("onDisconnect");
+		final KrollFunction onConnectionFailedWithRetries = (KrollFunction) params.get("onConnectionFailedWithRetries");
+		final KrollFunction onConnectionFailed = (KrollFunction) params.get("onConnectionFailed");
 		final KrollFunction onConnectedProbeCountChange = (KrollFunction) params.get("onConnectedProbeCountChange");
 		final Integer lowThreshold = (Integer) params.get("lowThreshold");
 		final Integer highThreshold = (Integer) params.get("highThreshold");
@@ -305,6 +307,11 @@ public class KankaDevice {
 					// TODO Auto-generated method stub
 					Log.d(KankaBluetoothModule.LCAT, "Connection failed with status " + getStatusString(status));
 					if (status == Status.ALREADY_CONNECTING_OR_CONNECTED) {
+						if(onConnectionFailed != null) {
+							HashMap<String, Object> attributes = getAttributes();
+							attributes.put("error", "ALREADY_CONNECTING_OR_CONNECTED");
+							onConnectionFailed.callAsync(_krollObject, attributes);
+						}
 						// device.disconnect();
 					}
 
@@ -315,6 +322,11 @@ public class KankaDevice {
 					Log.d(KankaBluetoothModule.LCAT,
 							"onConnectionFailedWithRetries with status " + getStatusString(status));
 					// TODO Auto-generated method stub
+					if(onConnectionFailedWithRetries != null) {
+						HashMap<String, Object> attributes = getAttributes();
+						attributes.put("error", getStatusString(status));
+						onConnectionFailedWithRetries.callAsync(_krollObject, attributes);
+					}
 
 				}
 
