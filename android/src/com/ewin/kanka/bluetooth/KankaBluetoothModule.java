@@ -41,7 +41,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	private iDeviceManager deviceManager;
 	public static BleManager bleManager;
 	private int requestCode;
-	private HashMap<String, KankaDevice> devices = new HashMap<String, KankaDevice>();
+	private static HashMap<String, KankaDevice> devices = new HashMap<String, KankaDevice>();
 	private iGrillTempUnit tempUnit = iGrillTempUnit.C;
 	
 
@@ -126,13 +126,23 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		if (device != null) 
 		{
 			Log.d(LCAT, "Calling ack for device");
-			device.acknowledgeAlarm();
+			device.acknowledgeAlarm(false);
 		}
 
 		Utils.stopRingtone();
-		
 	}
-
+	
+	public static void acknowledgeAlarmFromNotification(final String uniqueId, boolean isPrealarm) {
+		KankaDevice device = devices.get(uniqueId);
+		if (device != null) 
+		{
+			Log.d(LCAT, "Calling ack for device");
+			if(!isPrealarm) {
+				device.acknowledgeAlarm(isPrealarm);
+			}
+		}
+	}
+	
 	@Kroll.method
 	public void connectDevice(final String uniqueId, KrollDict params) {
 		Log.d(LCAT, "Connecting device");

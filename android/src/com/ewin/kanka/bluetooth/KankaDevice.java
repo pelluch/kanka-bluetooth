@@ -24,11 +24,12 @@ public class KankaDevice {
 	private boolean _hasRecipe = false;
 	private int _highThreshold = -2000;
 	private int _lowThreshold = -2000;
-	private short _preAlarmDelta;
+	private int _preAlarmDelta = 6;
 	private boolean _acknowledged = false;
 	private iGrillTempUnit _tempUnit;
 	private boolean _hasConnected = false;
-
+	private PreAlarmState _preAlarmState = PreAlarmState.NOT_ACTIVE;
+	
 	public KankaDevice(iGrill grill, iGrillTempUnit tempUnit, KrollObject krollObject) {
 		_grill = grill;
 		_krollObject = krollObject;
@@ -46,11 +47,11 @@ public class KankaDevice {
 			if(tempUnit == iGrillTempUnit.C) {
 				_highThreshold = (int)(((float)_highThreshold - 32.0)*5.0/9.0);
 				_lowThreshold = (int)(((float)_lowThreshold - 32.0)*5.0/9.0);
-				_preAlarmDelta = (short)((float)_preAlarmDelta*5.0/9.0);
+				_preAlarmDelta = (int)((float)_preAlarmDelta*5.0/9.0);
 			} else {
 				_highThreshold = (int)((float)_highThreshold*9.0/5.0 + 32.0);
 				_lowThreshold = (int)((float)_lowThreshold*9.0/5.0 + 32.0);
-				_preAlarmDelta = (short)((float)_preAlarmDelta*9.0/5.0);
+				_preAlarmDelta = (int)((float)_preAlarmDelta*9.0/5.0);
 			}
 		}
 		this._tempUnit = tempUnit;
@@ -59,13 +60,17 @@ public class KankaDevice {
 		}
 	}
 
-	public void acknowledgeAlarm(int index) {
+	public void acknowledgeAlarm(int index, boolean isPrealarm) {
 		if (_grill != null && _grill.getProbe(index) != null) {
-			Log.d(KankaBluetoothModule.LCAT, "Calling ack!");
-			_acknowledged = true;
-			_grill.getProbe(index).acknowledgePreAlarm();
-			_grill.getProbe(index).acknowledgeAlarm();
-			_grill.acknowledgeAlarm();
+			
+			if(!isPrealarm) {
+				_acknowledged = true;
+				_grill.getProbe(index).acknowledgePreAlarm();
+				_grill.getProbe(index).acknowledgeAlarm();
+				_grill.acknowledgeAlarm();
+			} else {
+				_preAlarmState = PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT;
+			}
 			// _grill.getProbe(0).clearThresholds();
 			// _lowThreshold = -2000;
 			// _highThreshold = -2000;
@@ -74,8 +79,8 @@ public class KankaDevice {
 		}
 	}
 
-	public void acknowledgeAlarm() {
-		acknowledgeAlarm(0);
+	public void acknowledgeAlarm(boolean isPrealarm) {
+		acknowledgeAlarm(0, isPrealarm);
 	}
 
 	public HashMap<String, Object> getAttributes() {
@@ -111,8 +116,8 @@ public class KankaDevice {
 			map.put("temperature", probe.getCurrentTemp());
 			map.put("highThreshold", probe.getHighThreshold(_tempUnit));
 			map.put("lowThreshold", probe.getLowThreshold(_tempUnit));
-			map.put("preAlarmDelta", probe.getPreAlarmDelta());
-			PreAlarmState state = probe.getPreAlarmState();
+			map.put("preAlarmDelta", _preAlarmDelta);
+			PreAlarmState state = _preAlarmState;
 			String stateString = "";
 			if (state == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT) {
 				stateString = "ACKNOWLEDGED_OR_REDUNDANT";
@@ -151,7 +156,7 @@ public class KankaDevice {
 				probe.setLowThreshold(lowThreshold.intValue());
 			}
 			if (preAlarmDelta != null) {
-				probe.setPreAlarmDelta(preAlarmDelta.shortValue());
+				_preAlarmDelta = preAlarmDelta.intValue();
 			}
 		}
 	}
@@ -206,9 +211,8 @@ public class KankaDevice {
 			_hasRecipe = true;
 			_highThreshold = highThreshold.intValue();
 		}
-		if (preAlarmDelta != null && preAlarmDelta.shortValue() != _preAlarmDelta) {
-			_preAlarmDelta = preAlarmDelta.shortValue();
-			_grill.getProbe(index).setPreAlarmDelta(_preAlarmDelta);
+		if (preAlarmDelta != null && preAlarmDelta.intValue() != _preAlarmDelta) {
+			_preAlarmDelta = preAlarmDelta.intValue();
 		}
 
 		if (clearThresholds) {
@@ -223,15 +227,16 @@ public class KankaDevice {
 
 	public void connect(final int index, KrollDict params) {
 
-		final KrollFunction tempCallback = (KrollFunction) params.get("onTemperatureChange");
-		final KrollFunction thresholdCallback = (KrollFunction) params.get("onThreshold");
-		final KrollFunction alarmCallback = (KrollFunction) params.get("onAlarmAcknowledge");
-		final KrollFunction preAlarmCallback = (KrollFunction) params.get("onPrealarmStateChange");
-		final KrollFunction connectCallback = (KrollFunction) params.get("onConnect");
-		final KrollFunction disconnectCallback = (KrollFunction) params.get("onDisconnect");
+		final KrollFunction onTemperatureChange = (KrollFunction) params.get("onTemperatureChange");
+		final KrollFunction onThreshold = (KrollFunction) params.get("onThreshold");
+		final KrollFunction onAlarmAcknowledge = (KrollFunction) params.get("onAlarmAcknowledge");
+		final KrollFunction onPrealarmStateChange = (KrollFunction) params.get("onPrealarmStateChange");
+		final KrollFunction onConnect = (KrollFunction) params.get("onConnect");
+		final KrollFunction onDisconnect = (KrollFunction) params.get("onDisconnect");
 		final KrollFunction onConnectionFailedWithRetries = (KrollFunction) params.get("onConnectionFailedWithRetries");
 		final KrollFunction onConnectionFailed = (KrollFunction) params.get("onConnectionFailed");
 		final KrollFunction onConnectedProbeCountChange = (KrollFunction) params.get("onConnectedProbeCountChange");
+		
 		final Integer lowThreshold = (Integer) params.get("lowThreshold");
 		final Integer highThreshold = (Integer) params.get("highThreshold");
 		final Integer preAlarmDelta = (Integer) params.get("preAlarmDelta");
@@ -244,8 +249,8 @@ public class KankaDevice {
 
 		updateThresholds(index, lowThreshold, highThreshold, preAlarmDelta);
 
-		if (_grill.getProbe(index).isConnected() && connectCallback != null) {
-			connectCallback.callAsync(_krollObject, getAttributes());
+		if (_grill.getProbe(index).isConnected() && onConnect != null) {
+			onConnect.callAsync(_krollObject, getAttributes());
 		} else {
 			_grill.setProbeListener(new iProbe.Listener() {
 				@Override
@@ -255,57 +260,67 @@ public class KankaDevice {
 					// temperature, thresholds, and pre-alarm delta elements in
 					// the GUI
 					if (event == Event.TEMPERATURE_CHANGED) {
-						// if(_hasRecipe) {
-						// probe.setHighThreshold(_highThreshold);
-						// }
-						// Log.d(KankaBluetoothModule.LCAT, "Probe temp is " +
-						// probe.getCurrentTemp());
-						// Log.d(KankaBluetoothModule.LCAT, "Probe
-						// getHighThreshold is " + probe.getHighThreshold());
-						// Log.d(KankaBluetoothModule.LCAT, "_thresholded is " +
-						// _thresholded + "");
 
 						int temperature = probe.getCurrentTemp();
-						/* if (temperature >= probe.getHighThreshold() && probe.getHighThreshold() > -1000) {
-							Utils.sendThresholdNotification();
-							if (thresholdCallback != null) {
-								thresholdCallback.callAsync(_krollObject, getAttributes());
-							}
-							_thresholded = true;
+
+						if (onTemperatureChange != null) {
+							onTemperatureChange.callAsync(_krollObject, getAttributes());
 						}
-						*/
-						if (tempCallback != null) {
-							tempCallback.callAsync(_krollObject, getAttributes());
+						
+						
+						if(_preAlarmDelta != 0) {
+							int highThreshold = _grill.getProbe(index).getHighThreshold(_tempUnit);
+							int preAlarmTemp = highThreshold - _preAlarmDelta;
+							if(_preAlarmState == PreAlarmState.NOT_ACTIVE && 
+									temperature >= preAlarmTemp && 
+									temperature < highThreshold) {
+								
+								_preAlarmState = PreAlarmState.ACTIVE;
+								
+								if(onPrealarmStateChange != null) {
+									onPrealarmStateChange.callAsync(_krollObject, getAttributes());
+									Utils.sendThresholdNotification(true, 
+											"Cocción casi lista",
+											"Faltan " + (highThreshold - temperature) +
+											"° para que se termine tu cocción",
+											_grill.getUniqueId());
+								}
+							} else if(_preAlarmState == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT
+									&& temperature < preAlarmTemp) {
+								_preAlarmState = PreAlarmState.NOT_ACTIVE;
+								if(onPrealarmStateChange != null) {
+									onPrealarmStateChange.callAsync(_krollObject, getAttributes());
+								}
+							}
 						}
 					} else if (event == Event.THRESHOLD_REACHED) {
-						if (thresholdCallback != null) {
+						if (onThreshold != null) {
 
 							// if (!_thresholded) {
 								Log.d(KankaBluetoothModule.LCAT, "THRESHOLD_REACHED");
-								Utils.sendThresholdNotification();
+								Utils.sendThresholdNotification(false,
+										"Cocción finalizada",
+										"Ha finalizado la cocción. Haga click para descartar la alarma.",
+										_grill.getUniqueId());
 								_thresholded = true;
-								thresholdCallback.callAsync(_krollObject, getAttributes());
+								
+								if(_preAlarmDelta != 0 && 
+										_preAlarmState == PreAlarmState.ACTIVE) {
+									_preAlarmState = PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT;
+									if(onPrealarmStateChange != null) {
+										onPrealarmStateChange.callAsync(_krollObject, getAttributes());
+									}
+								}
+								
+								onThreshold.callAsync(_krollObject, getAttributes());
 							// }
 						}
 					} else if (event == Event.ALARM_ACKNOWLEDGED) {
 						Log.d(KankaBluetoothModule.LCAT, "Alarm acknowledged");
-						if (alarmCallback != null) {
+						Utils.stopRingtone();
+						if (onAlarmAcknowledge != null) {
 							Log.d(KankaBluetoothModule.LCAT, "Calling on acknowledged");
-							alarmCallback.callAsync(_krollObject, getAttributes());
-						}
-					} else if (event == Event.PRE_ALARM_STATE_CHANGED) {
-						Log.d(KankaBluetoothModule.LCAT, "Pre alarm state change");
-						if (preAlarmCallback != null) {
-
-							PreAlarmState state = _grill.getProbe(index).getPreAlarmState();
-							if (state == PreAlarmState.ACKNOWLEDGED_OR_REDUNDANT) {
-								Log.d(KankaBluetoothModule.LCAT, "ACKNOWLEDGED_OR_REDUNDANT");
-							} else if (state == PreAlarmState.ACTIVE) {
-								Log.d(KankaBluetoothModule.LCAT, "ACTIVE");
-							} else if (state == PreAlarmState.NOT_ACTIVE) {
-								Log.d(KankaBluetoothModule.LCAT, "NOT_ACTIVE");
-							}
-							preAlarmCallback.callAsync(_krollObject, getAttributes());
+							onAlarmAcknowledge.callAsync(_krollObject, getAttributes());
 						}
 					}
 				}
@@ -346,11 +361,6 @@ public class KankaDevice {
 				public void onDeviceStateChange(iDeviceBle device, int arg1, int arg2, int arg3) {
 					Log.d(KankaBluetoothModule.LCAT, "onDeviceStateChange");
 
-					// TODO Auto-generated method stub
-					Log.d(KankaBluetoothModule.LCAT, arg1 + "");
-					Log.d(KankaBluetoothModule.LCAT, arg2 + "");
-					Log.d(KankaBluetoothModule.LCAT, arg3 + "");
-
 				}
 
 				@Override
@@ -380,11 +390,12 @@ public class KankaDevice {
 							_grill.getProbe(index).setLowThreshold(lowThreshold.intValue());
 						}
 						if (preAlarmDelta != null) {
-							_grill.getProbe(index).setPreAlarmDelta(preAlarmDelta.shortValue());
+							_preAlarmDelta = preAlarmDelta.intValue();
+							// _grill.getProbe(index).setPreAlarmDelta(preAlarmDelta.shortValue());
 						}
-						if (connectCallback != null) {
+						if (onConnect != null) {
 							Log.d(KankaBluetoothModule.LCAT, "Calling connectCallback");
-							connectCallback.callAsync(_krollObject, getAttributes());
+							onConnect.callAsync(_krollObject, getAttributes());
 						}
 /*
 						int currentTemp = _grill.getProbe(index).getCurrentTemp();
@@ -398,9 +409,9 @@ public class KankaDevice {
 
 					} else if (state == BleDeviceState.DISCONNECTED) {
 						Log.d(KankaBluetoothModule.LCAT, "DISCONNECTED");
-						if (disconnectCallback != null && _hasConnected) {
+						if (onDisconnect != null && _hasConnected) {
 							_hasConnected = false;
-							disconnectCallback.callAsync(_krollObject, getAttributes());
+							onDisconnect.callAsync(_krollObject, getAttributes());
 						}
 
 					} else if (state == BleDeviceState.RECONNECTING_LONG_TERM) {
@@ -475,6 +486,8 @@ public class KankaDevice {
 	public void reset(int index) {
 		if(_grill != null) {
 			_grill.getProbe(index).clearThresholds();
+			_preAlarmState = PreAlarmState.NOT_ACTIVE;
+			_preAlarmDelta = 6;
 		}
 	}
 	
