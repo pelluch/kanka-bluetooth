@@ -50,7 +50,12 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		super();
 	}
 
-	
+	@Kroll.onAppCreate
+	 public static void onAppCreate(TiApplication app)
+	 {
+	     // do something with app
+	 }
+
 
 	@Override
 	public void onDestroy(Activity activity) {
@@ -106,7 +111,13 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	}
 
 	
-
+	@Kroll.method
+	public void resetDevice(String uniqueId) {
+		KankaDevice device = devices.get(uniqueId);
+		if (device != null) {
+			device.reset();
+		}
+	}
 
 
 	@Kroll.method
@@ -154,13 +165,17 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		Log.d(LCAT, "Setting temperature unit");
 		TiProperties properties = TiApplication.getInstance().getAppProperties();
 		if(properties.hasProperty("termUnit")) {
-			String termUnit = properties.getString("termUnit", "°C");
-			if(termUnit.equals("°C")) {
+			String termUnit = properties.getString("termUnit", "");
+			Log.d(LCAT, "TERM UNIT IS " + termUnit);
+			if(termUnit.contains("C")) {
+				Log.d(LCAT, "SETTING CELSIUS");
 				this.tempUnit = iGrillTempUnit.C;
-			} else if(termUnit.equals("°F")){
+			} else if(termUnit.contains("F")){
+				Log.d(LCAT, "SETTING FAHRENHEIT");
 				this.tempUnit = iGrillTempUnit.F;
 			}
 		} else {
+			Log.d(LCAT, "NO TERM UNIT!!");
 			this.tempUnit = iGrillTempUnit.C;
 		}
 		Iterator<Entry<String, KankaDevice>> it = devices.entrySet().iterator();
