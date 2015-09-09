@@ -3,7 +3,6 @@ package com.ewin.kanka.bluetooth;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.appcelerator.titanium.TiApplication;
-
 import android.R;
 import android.app.Activity;
 import android.app.Notification;
@@ -64,6 +63,14 @@ public class Utils {
 		if (ringtone != null && ringtone.isPlaying()) 
 		{
 			ringtone.stop();
+		}
+	}
+	
+	public static void log(String message)
+	{
+		if(KankaBluetoothModule.VERBOSE_LOG)
+		{
+			android.util.Log.d(KankaBluetoothModule.LCAT, message);
 		}
 	}
 }

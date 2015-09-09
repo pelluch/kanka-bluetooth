@@ -17,7 +17,7 @@ public class AlarmService extends IntentService {
 		Ringtone ringtone = Utils.getRingtone();
 		String uniqueId = intent.getStringExtra("uniqueId");
 		boolean isPrealarm = intent.getBooleanExtra("isPrealarm", false);
-		android.util.Log.d("TiAPI", "Clicked on notification for uniqueId " + uniqueId +
+		Utils.log("Clicked on notification for uniqueId " + uniqueId +
 				" with playAlarm = " + isPrealarm);
 		KankaBluetoothModule.acknowledgeAlarmFromNotification(uniqueId, isPrealarm);
 		if(ringtone != null && !isPrealarm)

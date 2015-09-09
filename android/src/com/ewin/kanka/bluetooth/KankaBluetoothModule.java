@@ -38,6 +38,7 @@ import com.idevicesinc.sweetblue.BleManager;
 public class KankaBluetoothModule extends KrollModule implements TiActivityResultHandler {
 
 	public static final String LCAT = "TiAPI";
+	public static final boolean VERBOSE_LOG = false;
 	private iDeviceManager deviceManager;
 	public static BleManager bleManager;
 	private int requestCode;
@@ -59,16 +60,9 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 
 	@Override
 	public void onDestroy(Activity activity) {
-		Log.d(LCAT, "Module on destroy");
 		// TODO Auto-generated method stub
 		super.onDestroy(activity);
 
-		/* Iterator<Entry<String, iDevice>> it = devices.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, iDevice> pair = (Map.Entry<String, iDevice>) it.next();
-			pair.getValue().disconnect();
-		}
-		*/
 		// bleManager.stopScan();
 		// bleManager.disconnectAll();
 		// bleManager.undiscoverAll();
@@ -98,7 +92,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 	@Override
 	public void onStop(Activity activity) {
 		super.onStop(activity);
-		Log.d(LCAT, "module onStop");
+		Utils.log("module onStop");
 	}
 
 	@Kroll.method
@@ -125,7 +119,7 @@ public class KankaBluetoothModule extends KrollModule implements TiActivityResul
 		KankaDevice device = devices.get(uniqueId);
 		if (device != null) 
 		{
-			Log.d(LCAT, "Calling ack for device");
+			Utils.log("Calling ack for device");
 			device.acknowledgeAlarm(false);
 		}
 
