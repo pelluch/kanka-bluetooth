@@ -215,7 +215,7 @@
         [ deviceData setObject:onConnect forKey:@"onConnect" ];
         [ deviceData setObject:onDisconnect forKey:@"onDisconnect" ];
         if(!preAlarmDelta) {
-            preAlarmDelta = [ NSNumber numberWithInteger:6 ];
+            preAlarmDelta = [ NSNumber numberWithInteger:8 ];
         }
         [ deviceData setObject:preAlarmDelta forKey:@"preAlarmDelta" ];
         if(!highThreshold) {
@@ -310,7 +310,7 @@
     
     if(deviceData)
     {
-        NSNumber * blocked = [ deviceData objectForKey:@"blocked" ];
+        /* NSNumber * blocked = [ deviceData objectForKey:@"blocked" ];
         if(blocked != nil)
         {
             BOOL blockedBool = [ blocked boolValue ];
@@ -318,6 +318,7 @@
                 return;
             }
         }
+       
         
         [deviceData setObject:[ NSNumber numberWithBool:YES ] forKey:@"blocked" ];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -328,7 +329,7 @@
                                                          repeats:YES];
             
         });
-        
+          */
         // NSLog(@"Data updated");
         NSInteger newTemp = [ device currentTemperatureForProbe:0 ];
         // NSLog(@"Temp: %d", newTemp);
@@ -593,6 +594,8 @@
                                        @"hasRecipe",
                                        preAlarmDelta,
                                        @"preAlarmDelta",
+                                       [ NSNumber numberWithInteger:0 ],
+                                       @"connectionRetries",
                                        nil ];
     return deviceMap;
 
