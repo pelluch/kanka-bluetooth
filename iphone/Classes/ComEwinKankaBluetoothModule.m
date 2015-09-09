@@ -191,8 +191,12 @@
     KrollCallback * onPrealarmStateChange = params[@"onPrealarmStateChange"];
     KrollCallback * onConnect = params[@"onConnect"];
     KrollCallback * onDisconnect = params[@"onDisconnect"];
+    KrollCallback * onConnectionFailedWithRetries = params[@"onConnectionFailedWithRetries"];
+    KrollCallback * onConnectionFailed = params[@"onConnectionFailed"];
+    KrollCallback * onConnectedProbeCountChange = params[@"onConnectedProbeCountChange"];
     
-    // NSLog(@"Params: %@", params);
+    
+    NSNumber * preAlarmDelta = params[@"preAlarmDelta" ];
     NSNumber * highThreshold = params[@"highThreshold"];
     NSNumber * lowThreshold = params[@"lowThreshold"];
     NSMutableDictionary * deviceData = [ _devices objectForKey : uniqueId ];
@@ -210,6 +214,10 @@
         [ deviceData setObject:onPrealarmStateChange forKey:@"onPrealarmStateChange" ];
         [ deviceData setObject:onConnect forKey:@"onConnect" ];
         [ deviceData setObject:onDisconnect forKey:@"onDisconnect" ];
+        if(!preAlarmDelta) {
+            preAlarmDelta = [ NSNumber numberWithInteger:6 ];
+        }
+        [ deviceData setObject:preAlarmDelta forKey:@"preAlarmDelta" ];
         if(!highThreshold) {
             [ deviceData setObject:[ NSNumber numberWithInt:-2000 ] forKey:@"highThreshold" ];
             [ deviceData setObject:[ NSNumber numberWithBool:NO] forKey:@"hasRecipe" ];
@@ -326,7 +334,7 @@
         // NSLog(@"Temp: %d", newTemp);
         NSInteger temp = [ [ deviceData objectForKey:@"temperature" ] intValue ];
         // NSLog(@"Stored temp: %d", temp);
-        NSInteger highTemp = [ device highThresholdForProbe:0 inUnit:iGrillTempUnit_C ];
+        NSInteger highTemp = [ device highThresholdForProbe:0 inUnit:_tempUnit ];
         NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
         // NSLog(@"Map: %@", deviceMap);
         
@@ -374,8 +382,15 @@
                 NSLog(@"Calling onThreshold");
                 [ self scheduleNotificationWithDevice:device ];
                 [ onThreshold call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
-                
+                [ deviceData setObject:[ NSNumber numberWithBool:NO ] forKey:@"alarmAcknowledged "];
             }
+        } else if( [ thresholdReached boolValue ] && highTemp > -2000 && newTemp < highTemp) {
+            [ deviceData setObject:[ NSNumber numberWithBool:NO ] forKey:@"thresholdReached" ];
+        }
+        
+        if( [ [ deviceData objectForKey:@"alarmAcknowledged" ] boolValue ] == YES) {
+            [ device sendAcknowledgementForAlarm ];
+            // [ device turnOffAlarmForProbe:0 ];
         }
     }
 }
@@ -395,8 +410,9 @@
         if(device)
         {
             NSLog(@"Sending ack");
+            [ deviceData setObject:[ NSNumber numberWithBool:YES ] forKey:@"alarmAcknowledged" ];
+            // [ device turnOffAlarmForProbe:0 ];
             [ device sendAcknowledgementForAlarm ];
-            [ device turnOffAlarmForProbe:0 ];
         }
         else
         {
@@ -420,32 +436,16 @@
     
     NSLog(@"Gets here");
     NSInteger highInt = -2000;
-    NSInteger lowInt = -2000;
+    [ device setTempUnitForDevice:_tempUnit ];
     if([ deviceData objectForKey:@"highThreshold" ] != [ NSNull null ] ) {
         highInt = [ [ deviceData objectForKey:@"highThreshold" ] integerValue ];
+        [ device setHighThreshold:highInt forProbe:0 ];
     }
-    if([ deviceData objectForKey:@"lowThreshold" ] != [ NSNull null ] ) {
-        lowInt = [ [ deviceData objectForKey:@"lowThreshold" ] integerValue ];
-    }
+
+
+    NSLog(@"High: %d", highInt);
     
-    NSLog(@"High: %d low: %d", highInt, lowInt);
     
-    if([ device tempUnitForProbe:0 ] == iGrillTempUnit_C) {
-        NSLog(@"Probe temp in Celsius");
-    } else {
-        NSLog(@"Probe temp in Fahrenheit, converting");
-        float highFloat = (highInt*9.0/5.0 + 32.0);
-        float lowFloat = lowInt > -2000.0 ? (lowInt*9.0/5.0 + 32.0) : -2000.0;
-        lowInt = (NSInteger)roundf(lowFloat);
-        highInt = (NSInteger)roundf(highFloat);
-        NSLog(@"High: %d low: %d", highInt, lowInt);
-    }
-    
-    // NSNumber * number = [ deviceData objectForKey:@"registered]
-    
-    [ device setThresholdsForProbe:0 high:highInt low:lowInt ];
-    //[ device setThresholdsForProbe:0 high:[ [deviceData objectForKey:@"highThreshold"] integerValue ]
-    //                            low:[ [deviceData objectForKey:@"lowThreshold"] integerValue ]];
     if(onConnect) {
         [ deviceData setObject:[ NSNumber numberWithInteger:[ device currentTemperatureForProbe:0 ]] forKey:@"temperature" ];
         NSLog(@"Registering data updated observer");
@@ -568,11 +568,15 @@
     }
     
     BOOL hasRecipe = NO;
-    NSInteger highThreshold = [ device highThresholdForProbe:0 inUnit:iGrillTempUnit_C];
+    NSInteger highThreshold = [ device highThresholdForProbe:0 inUnit:_tempUnit];
     if(highThreshold > -2000) {
         hasRecipe = YES;
     }
-    
+    NSNumber * preAlarmDelta;
+    NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
+    if(deviceData) {
+        preAlarmDelta = [ deviceData objectForKey:@"preAlarmDelta" ];
+    }
     
     NSMutableDictionary * deviceMap = [[NSMutableDictionary alloc] initWithObjectsAndKeys:@"Device",
                                     @"deviceName", uuid, @"uniqueId", discovered, @"discovered",
@@ -581,12 +585,14 @@
                                        [ device deviceName ], @"deviceName",
                                        unitString, @"temperatureUnit",
                                        [NSNumber numberWithInteger:[device batteryLevel]], @"batteryLevel",
-                                       [NSNumber numberWithInteger:[device lowThresholdForProbe:0 inUnit:iGrillTempUnit_C]], @"lowThreshold",
-                                       [NSNumber numberWithInteger:[device highThresholdForProbe:0 inUnit:iGrillTempUnit_C]], @"highThreshold",
+                                       [NSNumber numberWithInteger:[device lowThresholdForProbe:0 inUnit:_tempUnit]], @"lowThreshold",
+                                       [NSNumber numberWithInteger:[device highThresholdForProbe:0 inUnit:_tempUnit]], @"highThreshold",
                                        [ NSNumber numberWithBool:[ device isProbeConnected:0 ]],
                                        @"connected",
                                        [ NSNumber numberWithBool:hasRecipe ],
                                        @"hasRecipe",
+                                       preAlarmDelta,
+                                       @"preAlarmDelta",
                                        nil ];
     return deviceMap;
 
@@ -596,11 +602,7 @@
 {
     // NSLog(@"deviceDiscovered");
     NSMutableDictionary * data = [[ NSMutableDictionary alloc ] initWithCapacity:10 ];
-    [ device setTempUnitForDevice:iGrillTempUnit_C ];
     [ data setObject:device forKey:@"device" ];
-    NSNumber * thresholdReached = @NO;
-    [ data setObject:thresholdReached forKey:@"thresholdReached" ];
-    // NSLog(@"Setting _devices for %@", [[ device deviceId ] UUIDString ]);
     [ _devices setObject:data forKey:[[ device deviceId ] UUIDString ]];
     NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
     if(_onDiscover) {
