@@ -12,11 +12,15 @@ public class AlarmService extends IntentService {
 	}
 
 	@Override
-	protected void onHandleIntent(Intent arg0) {
+	protected void onHandleIntent(Intent intent) {
 		// TODO Auto-generated method stub
 		Ringtone ringtone = Utils.getRingtone();
-		android.util.Log.d("TiAPI", "Clicked on notification");
-		if(ringtone != null)
+		String uniqueId = intent.getStringExtra("uniqueId");
+		boolean isPrealarm = intent.getBooleanExtra("isPrealarm", false);
+		android.util.Log.d("TiAPI", "Clicked on notification for uniqueId " + uniqueId +
+				" with playAlarm = " + isPrealarm);
+		KankaBluetoothModule.acknowledgeAlarmFromNotification(uniqueId, isPrealarm);
+		if(ringtone != null && !isPrealarm)
 		{
 			ringtone.stop();
 		}

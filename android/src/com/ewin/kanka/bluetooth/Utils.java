@@ -26,23 +26,29 @@ public class Utils {
 		return ringtone;
 	}
 	
-	public static void sendThresholdNotification() 
+	public static void sendThresholdNotification(boolean isPrealarm, String title, 
+			String message, String uniqueId) 
 	{
 		Context context = TiApplication.getInstance();
-		Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-		Ringtone ringtoneManager = RingtoneManager.getRingtone(context, alarmTone);
-		if (ringtone != null) {
-			ringtone.stop();
+		if(!isPrealarm) {
+			Uri alarmTone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+			Ringtone ringtoneManager = RingtoneManager.getRingtone(context, alarmTone);
+			if (ringtone != null) {
+				ringtone.stop();
+			}
+			ringtone = ringtoneManager;
+			ringtone.play();
 		}
-		ringtone = ringtoneManager;
-		ringtone.play();
-
+		
 		Intent notificationIntent = new Intent(context, AlarmService.class);
-		PendingIntent pendingIntent = PendingIntent.getService(context, 0, notificationIntent, 0);
+		notificationIntent.putExtra("uniqueId", uniqueId);
+		notificationIntent.putExtra("isPrealarm", isPrealarm);
+		PendingIntent pendingIntent = PendingIntent.getService(context, 0, notificationIntent,
+				PendingIntent.FLAG_UPDATE_CURRENT);
 
 		NotificationCompat.Builder builder = new NotificationCompat.Builder(context).setWhen(System.currentTimeMillis())
-				.setSmallIcon(R.drawable.ic_dialog_alert).setContentTitle("Cocción finalizada")
-				.setContentText("Ha finalizado la cocción. Haga click para descartar la alarma.")
+				.setSmallIcon(R.drawable.ic_dialog_alert).setContentTitle(title)
+				.setContentText(message)
 				.setContentIntent(pendingIntent);
 
 		Notification notification = builder.build();
