@@ -36,6 +36,8 @@
 		6EB9548A1B68364B0020506A /* iGrillBLEManagerDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EB9547D1B68364B0020506A /* iGrillBLEManagerDelegate.h */; };
 		6EB9548B1B68364B0020506A /* libKankaDevice.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6EB954801B68364B0020506A /* libKankaDevice.a */; };
 		6EB9548C1B68364B0020506A /* KankaDevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EB954821B68364B0020506A /* KankaDevice.h */; };
+		6EE9987C1BA67459004AE3DB /* Device.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EE9987B1BA67459004AE3DB /* Device.h */; };
+		6EE9987E1BA67466004AE3DB /* Device.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EE9987D1BA67466004AE3DB /* Device.m */; };
 		AA747D9F0F9514B9006C5449 /* ComEwinKankaBluetooth_Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = AA747D9E0F9514B9006C5449 /* ComEwinKankaBluetooth_Prefix.pch */; };
 		AACBBE4A0F95108600F1A2B1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AACBBE490F95108600F1A2B1 /* Foundation.framework */; };
 /* End PBXBuildFile section */
@@ -67,6 +69,8 @@
 		6EB9547D1B68364B0020506A /* iGrillBLEManagerDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = iGrillBLEManagerDelegate.h; sourceTree = "<group>"; };
 		6EB954801B68364B0020506A /* libKankaDevice.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libKankaDevice.a; sourceTree = "<group>"; };
 		6EB954821B68364B0020506A /* KankaDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KankaDevice.h; sourceTree = "<group>"; };
+		6EE9987B1BA67459004AE3DB /* Device.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Device.h; path = Classes/Device.h; sourceTree = "<group>"; };
+		6EE9987D1BA67466004AE3DB /* Device.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Device.m; path = Classes/Device.m; sourceTree = "<group>"; };
 		AA747D9E0F9514B9006C5449 /* ComEwinKankaBluetooth_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComEwinKankaBluetooth_Prefix.pch; sourceTree = SOURCE_ROOT; };
 		AACBBE490F95108600F1A2B1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D2AAC07E0554694100DB518D /* libComEwinKankaBluetooth.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libComEwinKankaBluetooth.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +127,8 @@
 				24DE9E1011C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m */,
 				24DD6CF71134B3F500162E58 /* ComEwinKankaBluetoothModule.h */,
 				24DD6CF81134B3F500162E58 /* ComEwinKankaBluetoothModule.m */,
+				6EE9987B1BA67459004AE3DB /* Device.h */,
+				6EE9987D1BA67466004AE3DB /* Device.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -217,6 +223,7 @@
 				6EB954881B68364B0020506A /* iGrillBLEDevice.h in Headers */,
 				6EB9548C1B68364B0020506A /* KankaDevice.h in Headers */,
 				6EB954861B68364B0020506A /* iGrillBLEAPITypes.h in Headers */,
+				6EE9987C1BA67459004AE3DB /* Device.h in Headers */,
 				24DE9E1111C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -291,6 +298,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6EE9987E1BA67466004AE3DB /* Device.m in Sources */,
 				24DD6CFA1134B3F500162E58 /* ComEwinKankaBluetoothModule.m in Sources */,
 				24DE9E1211C5FE74003F90F6 /* ComEwinKankaBluetoothModuleAssets.m in Sources */,
 			);

@@ -92,7 +92,7 @@
             [ device setTempUnitForDevice:_tempUnit ];
         }
     }
-    (@"termUnit is %@", termUnit);
+    // NSLog(@"termUnit is %@", termUnit);
 }
 
 -(void)shutdown:(id)sender
@@ -212,19 +212,20 @@
     NSNumber * lowThreshold = params[@"lowThreshold"];
     NSMutableDictionary * deviceData = [ _devices objectForKey : uniqueId ];
     
-    (@"deviceData: %@", deviceData);
+    // NSLog(@"deviceData: %@", deviceData);
     
     if(deviceData)
     {
         iGrillBLEDevice * device = [ deviceData objectForKey:@"device" ];
         
-        (@"There is deviceData");
+        // NSLog(@"There is deviceData");
         [ deviceData setObject:onTemperatureChange forKey:@"onTemperatureChange" ];
         [ deviceData setObject:onThreshold forKey:@"onThreshold" ];
         [ deviceData setObject:onAlarmAcknowledge forKey:@"onAlarmAcknowledge" ];
         [ deviceData setObject:onPrealarmStateChange forKey:@"onPrealarmStateChange" ];
         [ deviceData setObject:onConnect forKey:@"onConnect" ];
         [ deviceData setObject:onDisconnect forKey:@"onDisconnect" ];
+        [ deviceData setObject:onConnectedProbeCountChange forKey:@"onConnectedProbeCountChange" ];
         [ deviceData setObject:[ NSNumber numberWithInteger:NOT_ACTIVE ] forKey:@"preAlarmState" ];
         
         if(!preAlarmDelta) {
@@ -245,7 +246,7 @@
             [ deviceData setObject:lowThreshold forKey:@"lowThreshold" ];
         }
         
-        (@"Done setting device data");
+        // NSLog(@"Done setting device data");
         
         if(device)
         {
@@ -255,21 +256,21 @@
             }
             else
             {
-                (@"Calling connectiGrill");
+                // NSLog(@"Calling connectiGrill");
                 [ _iGrillBLEManager connectiGrill:device ];
             }
             
-            (@"There is device");
+            // NSLog(@"There is device");
             [ device setTempUnitForDevice:iGrillTempUnit_C ];
         }
         else
         {
-            (@"There is no device");
+            // NSLog(@"There is no device");
         }
     }
     else
     {
-        (@"No data for device %@", uniqueId);
+        // NSLog(@"No data for device %@", uniqueId);
     }
 }
 
@@ -296,13 +297,13 @@
     }
     else
     {
-        (@"Unable to scan");
+        // NSLog(@"Unable to scan");
     }
 }
 
 - (void) igrillBLEManagerBluetoothUnavailable:(iGrillBLEManager*)manager
 {
-    (@"Bluetooth unavailable");
+    // NSLog(@"Bluetooth unavailable");
 }
 
 - (void) unblockUpdate:(NSTimer *)timer
@@ -317,6 +318,7 @@
 
 - (void) dataUpdated:(iGrillBLEDevice *)device
 {
+    // // NSLog(@"Data updated");
     NSString * uuid = [[ device deviceId ] UUIDString];
     NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
     
@@ -371,6 +373,19 @@
  
         // [ device setThresholdsForProbe:0 high:highInt low:lowInt ];
         
+        NSInteger connectedProbeCount = [ [ deviceData objectForKey:@"connectedProbeCount"  ] integerValue ];
+        NSInteger newConnectedProbeCount = [ self getConnectedProbeCount:device ];
+        if(connectedProbeCount != newConnectedProbeCount)
+        {
+            [ deviceData setObject:[ NSNumber numberWithInteger:newConnectedProbeCount ] forKey:@"connectedProbeCount" ];
+            KrollCallback * onConnectedProbeCountChange = [ deviceData objectForKey:@"onConnectedProbeCountChange" ];
+            if(onConnectedProbeCountChange)
+            {
+                // NSLog(@"Calling on connected probe count change with %d", newConnectedProbeCount);
+                // (@"Calling onTemperatureChange");
+                [ onConnectedProbeCountChange call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
+            }
+        }
         if(newTemp != temp)
         {
             // (@"Temperatures not equal, setting object");
@@ -420,13 +435,13 @@
         NSNumber * thresholdReached = [ deviceData objectForKey:@"thresholdReached" ];
         if(![ thresholdReached boolValue ] && highTemp > -2000 && newTemp >= highTemp)
         {
-            (@"Threshold reached!");
+            // NSLog(@"Threshold reached!");
             thresholdReached = @YES;
             [ deviceData setObject:thresholdReached forKey:@"thresholdReached" ];
             KrollCallback * onThreshold = [ deviceData objectForKey:@"onThreshold" ];
             if(onThreshold)
             {
-                (@"Calling onThreshold");
+                // NSLog(@"Calling onThreshold");
                 NSString * message = [ NSString stringWithFormat:@"La cocción de la sonda %@ ha finalizado",
                                       [ device deviceName ] ];
                 [ self scheduleNotificationWithDevice:device withTitle:@"Cocción Finalizada" withMessage:message ];
@@ -447,10 +462,10 @@
 - (void) acknowledgeAlarm:(id)args
 {
     ENSURE_ARG_COUNT(args, 1);
-    (@"Acknowledge alarm");
+    // NSLog(@"Acknowledge alarm");
     
     NSString * uniqueId = args[0];
-    (@"Id is %@", uniqueId);
+    // NSLog(@"Id is %@", uniqueId);
     
     NSMutableDictionary * deviceData = [ _devices objectForKey:uniqueId ];
     if(deviceData)
@@ -458,39 +473,43 @@
         iGrillBLEDevice * device = [ deviceData objectForKey:@"device" ];
         if(device)
         {
-            (@"Sending ack");
+            // NSLog(@"Sending ack");
             [ deviceData setObject:[ NSNumber numberWithBool:YES ] forKey:@"alarmAcknowledged" ];
-            (@"Set alarmAcknowledged");
+            // NSLog(@"Set alarmAcknowledged");
             [ deviceData setObject:[ NSNumber numberWithInteger:ACKNOWLEDGED_OR_REDUNDANT ] forKey:@"preAlarmState" ];
-            (@"Set preAlarmState");
+            // NSLog(@"Set preAlarmState");
             // [ device turnOffAlarmForProbe:0 ];
             if([ device alarmOnForProbe:0 ]) {
                 [ device sendAcknowledgementForAlarm ];
             }
-            (@"Done");
+            // NSLog(@"Done");
             
         }
         else
         {
-            (@"No device");
+            // NSLog(@"No device");
         }
     }
     else
     {
-        (@"No deviceData");
+        // NSLog(@"No deviceData");
     }
 
 }
 
 - (void) deviceConnected:(iGrillBLEDevice*)device
 {
-    (@"deviceConnected");
+    // NSLog(@"deviceConnected");
     NSString * uuid = [[ device deviceId ] UUIDString];
     NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
+    
+    [ deviceData setObject:[ NSNumber numberWithInteger:0 ]
+                    forKey:@"connectedProbeCount" ];
+    
     KrollCallback * onConnect = [ deviceData objectForKey:@"onConnect" ];
+    KrollCallback * onConnectedProbeCountChange = [ deviceData objectForKey:@"onConnectedProbeCountChange" ];
     
-    
-    (@"Gets here");
+    // NSLog(@"Gets here");
     NSInteger highInt = -2000;
     [ device setTempUnitForDevice:_tempUnit ];
     if([ deviceData objectForKey:@"highThreshold" ] != [ NSNull null ] ) {
@@ -499,18 +518,19 @@
     }
 
 
-    (@"High: %d", highInt);
+    // NSLog(@"High: %d", highInt);
     
     
     if(onConnect) {
         [ deviceData setObject:[ NSNumber numberWithInteger:[ device currentTemperatureForProbe:0 ]] forKey:@"temperature" ];
-        (@"Registering data updated observer");
+        // NSLog(@"Registering data updated observer");
         
         [ device registerDataObserver:self withSelector:@selector(dataUpdated:)];
         
         NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
         [ onConnect call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
     }
+    
 
 }
 
@@ -521,7 +541,7 @@
 
 - (void) igrillBLEManager:(iGrillBLEManager*)manager deviceDisconnected:(iGrillBLEDevice*)device
 {
-    (@"deviceDisconnected");
+    // NSLog(@"deviceDisconnected");
     NSString * uuid = [[ device deviceId ] UUIDString];
     NSMutableDictionary * deviceData = [ _devices objectForKey:uuid ];
     KrollCallback * onDisconnect = [ deviceData objectForKey:@"onDisconnect" ];
@@ -534,7 +554,7 @@
 
 - (void) igrillBLEManager:(iGrillBLEManager*)manager deviceConnectFailed:(iGrillBLEDevice*)device
 {
-    (@"deviceConnectFailed");
+    // NSLog(@"deviceConnectFailed");
 }
 
 - (void) registerForNotifications
@@ -571,7 +591,7 @@ withMessage:(NSString *) message {
     NSDictionary * infoDict = [NSDictionary dictionaryWithObject:uuid forKey:@"uniqueId" ];
     localNotif.userInfo = infoDict;
     localNotif.applicationIconBadgeNumber = 1;
-    // (@"Scheduling not");
+    // // NSLog(@"Scheduling not");
     [[UIApplication sharedApplication] scheduleLocalNotification:localNotif];
 }
 
@@ -579,7 +599,7 @@ withMessage:(NSString *) message {
 -(id) getDevice:(id)args
 {
     ENSURE_ARG_COUNT(args, 1);
-    // (@"Connect device");
+    // // NSLog(@"Connect device");
     NSString * uniqueId = [ args[0] retain ];
     NSMutableDictionary * deviceData = [ _devices objectForKey:uniqueId ];
     if(deviceData)
@@ -649,6 +669,8 @@ withMessage:(NSString *) message {
     {
         preAlarmState = @"ACKNOWLEDGED_OR_REDUNDANT";
     }
+    NSNumber * connectedProbeCount = [ NSNumber numberWithInteger:[ self getConnectedProbeCount:device ]];
+    // NSLog(@"Connected probe count in device map is %@", connectedProbeCount);
     NSMutableDictionary * deviceMap = [[NSMutableDictionary alloc] initWithObjectsAndKeys:@"Device",
                                     @"deviceName", uuid, @"uniqueId", discovered, @"discovered",
                                        [ NSNumber numberWithInteger:[device currentTemperatureForProbe:0 ]],
@@ -668,9 +690,23 @@ withMessage:(NSString *) message {
                                        @"connectionRetries",
                                        preAlarmState,
                                        @"preAlarmState",
+                                       [ NSNumber numberWithInteger:[ self getConnectedProbeCount:device ]],
+                                       @"connectedProbeCount",
                                        nil ];
     return deviceMap;
 
+}
+
+-(NSInteger) getConnectedProbeCount:(iGrillBLEDevice *)device
+{
+    NSInteger numSupported = [ device numberOfProbesSupported ];
+    NSInteger numConnected = 0;
+    for (int i = 0; i < numSupported; ++i) {
+        if([ device isProbeConnected:i ]) {
+            ++numConnected;
+        }
+    }
+    return numConnected;
 }
 
 -(void) igrillBLEManager:(iGrillBLEManager*)manager deviceDiscovered:(iGrillBLEDevice*)device
@@ -688,7 +724,7 @@ withMessage:(NSString *) message {
 
 -(void) igrillBLEManager:(iGrillBLEManager*)manager undiscoveredDevice:(iGrillBLEDevice*)device
 {
-    // (@"undiscoveredDevice");
+    // // NSLog(@"undiscoveredDevice");
     NSMutableDictionary * deviceMap = [ self getDeviceMap:device ];
     if(_onUndiscover) {
         [ _onUndiscover call:[ NSArray arrayWithObject:deviceMap ] thisObject:self ];
@@ -697,7 +733,7 @@ withMessage:(NSString *) message {
 
 - (void)checkForUndiscoveredDevices
 {
-    // (@"Checking for undiscovered devices");
+    // // NSLog(@"Checking for undiscovered devices");
     [_iGrillBLEManager cullDiscoveredDevicesOlderThan:20];
 }
 
